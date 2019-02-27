@@ -38,6 +38,7 @@ int* convertRowWiseMatrixToColumnWise(int* arr[], int N)
             return_array[j + i] = *arr[j * N + i];
         }
     }
+    printf("Converted");
 }
 int main (int argc, char *argv[])
 {
@@ -79,19 +80,21 @@ int main (int argc, char *argv[])
         for (int m = 0; m < N; ++m) {
             sum_local += array1[m] *array2_colwise[m];
         }
-
-        /**
-         * All Reduce
-         * */
-        int sum_others = 0;
-        printf("Process %d starting all reduce with local sum %d\n", rank, sum_local);
-        MPI_Allreduce(&sum_local, &sum_others, 1,
-                      MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        printf("Process %d has total %d\n", rank, sum_others);
     }
     else
     {
+        int N = 0;
+        MPI_Recv((void *) &N, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
+        int *array1 = (int*) malloc(N* sizeof(int));
+        int *array2 = (int*) malloc(N* sizeof(int));
+        MPI_Recv((void *) array1, N, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
+        MPI_Recv((void *) array2, N, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
 
+        int sum_local = 0;
+        for (int l = 0; l < N; ++l) {
+            sum_local += array1[l] * array2[l];
+        }
+        //MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
     }
     MPI_Finalize();
     return 0;
