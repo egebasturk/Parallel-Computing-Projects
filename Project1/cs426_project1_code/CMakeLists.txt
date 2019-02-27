@@ -8,4 +8,5 @@ add_executable(serial1 sum-serial.c)
 
 include_directories(/usr/include/mpi/)
 link_libraries(mpi)
-add_executable(mpi1 sum-mpi-ppv1.c)
+add_executable(mpi1 sum-mpi-ppv1.c )
+add_executable(mpi2 sum-mpi-ppv2.c )
