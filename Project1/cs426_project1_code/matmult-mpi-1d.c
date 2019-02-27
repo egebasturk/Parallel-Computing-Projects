@@ -33,9 +33,9 @@ int readMatrixFromFile(int* arr[], char* input_filename, int* N)
 int* convertRowWiseMatrixToColumnWise(int* arr[], int N)
 {
     int* return_array = malloc(N * N * sizeof(int));
-    for (int row = 0; row < N; ++row) {
-        for (int col = 0; col < N; ++col) {
-            return_array[col] = *arr[row + N * col];
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            return_array[j + i] = *arr[j * N + i];
         }
     }
 }
@@ -60,11 +60,10 @@ int main (int argc, char *argv[])
         char* input_filename2 = "../test-input-matrix2.txt";
         arr_length1 = readMatrixFromFile(&array1, input_filename1, &N);
         arr_length2 = readMatrixFromFile(&array2, input_filename2, &N);
+        int* array2_colwise = convertRowWiseMatrixToColumnWise(&array2, N);
 
         result_array = malloc(N * N * sizeof(int));
-
         printf("Array length is %d\n", arr_length1);
-
         printf ("Sending data . . .\n");
 
         for (int l = 1; l < size; ++l)
@@ -72,12 +71,13 @@ int main (int argc, char *argv[])
             printf ("Sending data to %d\n", l);
 
             MPI_Send((void *) &N, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD); // Send length
-            int offset = (arr_length1 / size) * l * sizeof(int);
-            MPI_Send((void *) arr_length1 + N, arr_length1 / size, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            int offset = N * l * sizeof(int);
+            MPI_Send((void *) array1 + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            MPI_Send((void *) array2_colwise + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
         }
         int sum_local = 0;
-        for (int m = 0; m < arr_length1 / size + arr_length1 % size; ++m) {
-            sum_local += array1[m];
+        for (int m = 0; m < N; ++m) {
+            sum_local += array1[m] *array2_colwise[m];
         }
 
         /**
