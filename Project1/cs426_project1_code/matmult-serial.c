@@ -32,6 +32,20 @@ int readMatrixFromFile(int* arr[], char* input_filename, int* N)
         return index--;
     }
 }
+int* convertRowWiseMatrixToColumnWise(const int arr[], int N)
+{
+    int* return_array = malloc(N * N * sizeof(int));
+    int index = 0;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            int tmp = arr[i + N *j];
+            return_array[index] = tmp;
+            index++;
+        }
+    }
+    printf("Converted");
+    return return_array;
+}
 int main() {
     int* array1;
     int* array2;
@@ -72,8 +86,6 @@ int main() {
         }
     }
 
-
-
     printf("\nResult\n");
     for (int i = 0; i < N * N; ++i)
     {
@@ -82,5 +94,15 @@ int main() {
         printf("%d ", result_array[i]);
     }
 
+    /*
+     * Test code for matrix col wise conversion
+    int* array2_colwise = convertRowWiseMatrixToColumnWise(array2, N);
+    printf("\ncol wise conversion\n");
+    for (int i = 0; i < N * N; ++i)
+    {
+        if ((i % N) == 0)
+            printf("\n");
+        printf("%d ", array2_colwise[i]);
+    }*/
     return 0;
 }

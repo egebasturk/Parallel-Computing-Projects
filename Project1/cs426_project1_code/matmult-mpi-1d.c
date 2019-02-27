@@ -30,15 +30,18 @@ int readMatrixFromFile(int* arr[], char* input_filename, int* N)
         return index--;
     }
 }
-int* convertRowWiseMatrixToColumnWise(int* arr[], int N)
+int* convertRowWiseMatrixToColumnWise(const int arr[], int N)
 {
     int* return_array = malloc(N * N * sizeof(int));
+    int index = 0;
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            return_array[j + i] = *arr[j * N + i];
+            int tmp = arr[i + N *j];
+            return_array[index] = tmp;
+            index++;
         }
     }
-    printf("Converted");
+    return return_array;
 }
 int main (int argc, char *argv[])
 {
@@ -61,7 +64,7 @@ int main (int argc, char *argv[])
         char* input_filename2 = "../test-input-matrix2.txt";
         arr_length1 = readMatrixFromFile(&array1, input_filename1, &N);
         arr_length2 = readMatrixFromFile(&array2, input_filename2, &N);
-        int* array2_colwise = convertRowWiseMatrixToColumnWise(&array2, N);
+        int* array2_colwise = convertRowWiseMatrixToColumnWise(array2, N);
 
         result_array = malloc(N * N * sizeof(int));
         printf("Array length is %d\n", arr_length1);
