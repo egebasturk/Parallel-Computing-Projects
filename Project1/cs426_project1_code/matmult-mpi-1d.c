@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <mpi.h>
+#include <math.h>
 
 int readMatrixFromFile(int* arr[], char* input_filename, int* N)
 {
@@ -45,7 +46,6 @@ int* convertRowWiseMatrixToColumnWise(const int arr[], int N)
 }
 int main (int argc, char *argv[])
 {
-
     MPI_Status s;
     int size, rank, i, j;
 
@@ -70,15 +70,18 @@ int main (int argc, char *argv[])
         printf("Array length is %d\n", arr_length1);
         printf ("Sending data . . .\n");
 
+        int row = 0;
         for (int l = 1; l < size; ++l)
         {
             printf ("Sending data to %d\n", l);
-
             MPI_Send((void *) &N, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD); // Send length
-
-            int offset = N * l * sizeof(int);
-            MPI_Send((void *) array1 + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
-            MPI_Send((void *) array2_colwise + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            printf("Length sent\n");
+            int offset = N / sqrt(size) * l * sizeof(int); // Description constraints to int
+            int col = l % N;
+            if (col == 0)
+                row++;
+            MPI_Send((void *) array1 + offset * row, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            MPI_Send((void *) array2_colwise + offset * col, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
         }
         int sum_local = 0;
         for (int m = 0; m < N; ++m) {
@@ -90,22 +93,33 @@ int main (int argc, char *argv[])
         result_array[0] = sum_local; // Save masters part
         for (int l = 1; l < size; ++l)
         {
-            MPI_Recv((void *) &N, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
+            int tmp = 0;
+            MPI_Recv((void *) &tmp, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD, &s);
+        }
+        printf("\nResult\n");
+        for (int i = 0; i < N * N; ++i)
+        {
+            if ((i % N) == 0)
+                printf("\n");
+            printf("%d ", result_array[i]);
         }
     }
     else
     {
         int N = 0;
-        MPI_Recv((void *) &N, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
+        MPI_Recv((void *) &N, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s); // Get N
         int *array1 = (int*) malloc(N* sizeof(int));
         int *array2 = (int*) malloc(N* sizeof(int));
+        //printf("Process %d receiving arrays\n", rank);
         MPI_Recv((void *) array1, N, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
         MPI_Recv((void *) array2, N, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
+        //printf("Process %d received arrays\n", rank);
 
         int sum_local = 0;
         for (int l = 0; l < N; ++l) {
             sum_local += array1[l] * array2[l];
         }
+        printf("Process %d sending %d to master\n", rank, sum_local);
         MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
     }
     MPI_Finalize();
