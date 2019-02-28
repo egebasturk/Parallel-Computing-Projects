@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <mpi.h>
+#include <math.h>
 #define INPUT_ELEMENT_SIZE 2048
 
 int readArrayFromFile(int* arr[])
@@ -45,21 +46,27 @@ int main (int argc, char *argv[])
          * Send an array to the clients
          * */
         printf ("Sending data . . .\n");
+        int down_counter = array_length;
+        int array_piece_length_master = 0;
 
         for (int l = 1; l < size; ++l)
         {
             int* arr_tmp = arr + array_length % size;
-            int array_piece_length = array_length / size;
+            int array_piece_length = (int) ceil((double )array_length / size);
+            down_counter -= array_piece_length;
+            if (down_counter < 0)
+                array_piece_length = down_counter + array_piece_length;
+
             printf ("Sending data to %d\n", l);
 
             MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD); // Send length
 
-            int offset = (array_length / size) * l * sizeof(int);
+            int offset = array_piece_length * (l - 1) * sizeof(int);
 
-            MPI_Send((void *) arr_tmp + offset, array_length / size, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            MPI_Send((void *) arr_tmp + offset, array_piece_length, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
         }
         int sum = 0;
-        for (int m = 0; m < array_length / size + array_length % size; ++m) {
+        for (int m = 0; m < array_piece_length_master; ++m) {
             sum += arr[m];
         }
 
@@ -67,6 +74,7 @@ int main (int argc, char *argv[])
          * Receive results from the clients
          * */
         printf ("Receiving data . . .\n");
+        printf("Master has %d\n", sum);
         int totalsum = sum;
         for (i = 1; i < size; i++)
         {
