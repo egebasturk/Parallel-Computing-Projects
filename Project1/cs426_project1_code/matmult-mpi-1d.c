@@ -75,6 +75,7 @@ int main (int argc, char *argv[])
             printf ("Sending data to %d\n", l);
 
             MPI_Send((void *) &N, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD); // Send length
+
             int offset = N * l * sizeof(int);
             MPI_Send((void *) array1 + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
             MPI_Send((void *) array2_colwise + offset, N, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
@@ -82,6 +83,14 @@ int main (int argc, char *argv[])
         int sum_local = 0;
         for (int m = 0; m < N; ++m) {
             sum_local += array1[m] *array2_colwise[m];
+        }
+        /**
+         * Receive data
+         * */
+        result_array[0] = sum_local; // Save masters part
+        for (int l = 1; l < size; ++l)
+        {
+            MPI_Recv((void *) &N, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
         }
     }
     else
@@ -97,7 +106,7 @@ int main (int argc, char *argv[])
         for (int l = 0; l < N; ++l) {
             sum_local += array1[l] * array2[l];
         }
-        //MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
+        MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
     }
     MPI_Finalize();
     return 0;

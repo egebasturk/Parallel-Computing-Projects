@@ -7,8 +7,6 @@ int readArrayFromFile(int* arr[])
 {
     char* input_filename = "../test-input.txt";
     FILE *fptr;
-    char *line;
-    size_t len = 0;
     int* return_array = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
 
     fptr = fopen(input_filename, "r");
@@ -88,7 +86,6 @@ int main (int argc, char *argv[])
         int *arr = (int*) malloc(array_length* sizeof(int));
 
         MPI_Recv((void *) arr, array_length, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
-
 
         /**
          * Make calculations and return results

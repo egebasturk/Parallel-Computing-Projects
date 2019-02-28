@@ -9,6 +9,7 @@ add_executable(matmult-serial1 matmult-serial.c)
 
 include_directories(/usr/include/mpi/)
 link_libraries(mpi)
+link_libraries(m)
 add_executable(mpi1 sum-mpi-ppv1.c )
 add_executable(mpi2 sum-mpi-ppv2.c )
 add_executable(matmult-parallel1 matmult-mpi-1d.c)
