@@ -46,31 +46,23 @@ int main (int argc, char *argv[])
          * Send an array to the clients
          * */
         printf ("Sending data . . .\n");
-        /*int array_piece_length_master = (int) ceil((double )array_length / size);
-        int down_counter = array_length - array_piece_length_master;
-        if (down_counter < 0)
-            array_piece_length_master = down_counter + array_piece_length_master;*/
+
         int array_piece_length_master = (int) ceil((double )array_length / size);
-        int remainder_down_counter = (array_length % size) - 1;
+        int remainder_down_counter = (array_length % size) - 1; // -1 because master gets the first one
         int offset = array_piece_length_master * sizeof(MPI_INT);
         for (int l = 1; l < size; ++l)
         {
             int* arr_tmp = arr;
-            //int array_piece_length = (int) ceil((double )array_length / size);
+
             int array_piece_length = array_length / size;
             if (remainder_down_counter > 0) {
                 array_piece_length++;
                 remainder_down_counter--;
             }
-            /*down_counter -= array_piece_length;
-            if (down_counter < 0)
-                array_piece_length = down_counter + array_piece_length;*/
 
             printf ("Sending data to %d\n", l);
             // Send length of data
             MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
-
-            printf("Offset to %d is %d piece length is :%d\n", l, offset/ sizeof(int), array_piece_length);
             MPI_Send((void *) arr_tmp + offset, array_piece_length, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
             offset += array_piece_length * sizeof(MPI_INT);
         }

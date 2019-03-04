@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <mpi.h>
+#include <math.h>
 #define INPUT_ELEMENT_SIZE 2048
 
 int readArrayFromFile(int* arr[])
@@ -30,7 +31,7 @@ int readArrayFromFile(int* arr[])
 int main (int argc, char *argv[])
 {
     MPI_Status s;
-    int size, rank, i, j;
+    int size, rank;
 
     MPI_Init (&argc, &argv);
     MPI_Comm_size (MPI_COMM_WORLD, &size);
@@ -46,20 +47,27 @@ int main (int argc, char *argv[])
          * */
         printf ("Sending data . . .\n");
 
+        int array_piece_length_master = (int) ceil((double )array_length / size);
+        int remainder_down_counter = (array_length % size) - 1; // -1 because master gets the first one
+        int offset = array_piece_length_master * sizeof(MPI_INT);
         for (int l = 1; l < size; ++l)
         {
-            int* arr_tmp = arr + array_length % size;
+            int* arr_tmp = arr;
+
             int array_piece_length = array_length / size;
+            if (remainder_down_counter > 0) {
+                array_piece_length++;
+                remainder_down_counter--;
+            }
+
             printf ("Sending data to %d\n", l);
-
-            MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD); // Send length
-
-            int offset = (array_length / size) * l * sizeof(int);
-
-            MPI_Send((void *) arr_tmp + offset, array_length / size, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            // Send length of data
+            MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            MPI_Send((void *) arr_tmp + offset, array_piece_length, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
+            offset += array_piece_length * sizeof(MPI_INT);
         }
         int sum_local = 0;
-        for (int m = 0; m < array_length / size + array_length % size; ++m) {
+        for (int m = 0; m < array_piece_length_master; ++m) {
             sum_local += arr[m];
         }
 
@@ -82,7 +90,6 @@ int main (int argc, char *argv[])
         int *arr = (int*) malloc(array_length* sizeof(int));
 
         MPI_Recv((void *) arr, array_length, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
-
 
         /**
          * Make calculations and return results
