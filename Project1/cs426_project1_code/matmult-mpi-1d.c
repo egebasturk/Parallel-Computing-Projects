@@ -65,27 +65,38 @@ int main (int argc, char *argv[])
         arr_length1 = readMatrixFromFile(&array1, input_filename1, &N);
         arr_length2 = readMatrixFromFile(&array2, input_filename2, &N);
         int* array2_colwise = convertRowWiseMatrixToColumnWise(array2, N);
-
-        result_array = malloc(N * N * sizeof(int));
-        printf("Array length is %d\n", arr_length1);
-        printf ("Sending data . . .\n");
-
-        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);   // Bcast array dimension
-        MPI_Bcast(&array2_colwise, N*N, MPI_INT, 0, MPI_COMM_WORLD); // Bcast colwise 2nd array
-        int row_count_per_process = N / size;
-        //int scatter_start_offset = row_count_per_process * N * sizeof(MPI_INT);
-        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(MPI_INT));
-
         for (int i = 0; i < N * N; ++i)
         {
             if ((i % N) == 0)
                 printf("\n");
             printf("%d ", array2_colwise[i]);
         }
+        result_array = malloc(N * N * sizeof(int));
+        printf("Array length is %d\n", arr_length1);
+        printf ("Sending data . . .\n");
+
+        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);   // Bcast array dimension
+        MPI_Bcast(array2_colwise, N*N, MPI_INT, 0, MPI_COMM_WORLD); // Bcast colwise 2nd array
+        int row_count_per_process = N / size;
+        //int scatter_start_offset = row_count_per_process * N * sizeof(MPI_INT);
+        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(MPI_INT));
 
         MPI_Scatter(array1,
             N * row_count_per_process, MPI_INT, recv_buffer,
             row_count_per_process * N, MPI_INT, 0, MPI_COMM_WORLD);
+
+        int result_array_index_current = 0;
+        int tmp_sum = 0;
+        for (int k = 0; k < N * row_count_per_process; ++k) {
+            if ((k+1) % N == 0)
+            {
+                result_array[result_array_index_current] = tmp_sum;
+                tmp_sum = 0;
+                result_array_index_current++;
+                //printf("Tmp sum of process %d is%d\n", rank, tmp_sum);
+            }
+            tmp_sum += recv_buffer[k] * array2_colwise[k];
+        }
 
         MPI_Gather(NULL, 0, MPI_INT,
                    result_array, row_count_per_process * N,
@@ -130,6 +141,11 @@ int main (int argc, char *argv[])
                 printf("\n");
             printf("%d ", result_array[i]);
         }*/
+        free(array2_colwise);
+        free(array1);
+        free(array2);
+        free(recv_buffer);
+        free(result_array);
     }
     else
     {
@@ -139,19 +155,14 @@ int main (int argc, char *argv[])
         MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);               // Get N, matrix dim
         colwise_array = (int*) malloc(N * N * sizeof(int));         // Create buffer
         MPI_Bcast(colwise_array, N*N, MPI_INT, 0, MPI_COMM_WORLD);  // Get the 2nd matrix
+
         printf("Process %d Received array with N %d\n", rank, N);
-        for (int i = 0; i < N * N; ++i)
-        {
-            if ((i % N) == 0)
-                printf("\n");
-            printf("%d ", colwise_array[i]);
-        }
 
         int row_count_per_process = N / size;
-        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(MPI_INT));
-        MPI_Scatter(NULL,
-                    0, MPI_INT, recv_buffer,
-                    row_count_per_process * N, MPI_INT, 0, MPI_COMM_WORLD);
+        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(int));
+        MPI_Scatter(NULL, 0, MPI_INT
+                , recv_buffer, row_count_per_process * N, MPI_INT
+                , 0, MPI_COMM_WORLD);
         /*for (int i = 0; i < N * row_count_per_process; ++i)
         {
             if ((i % N) == 0)
@@ -162,7 +173,7 @@ int main (int argc, char *argv[])
         int* result_array = (int*) malloc(sizeof(int) * N * row_count_per_process);
         int result_array_index_current = 0;
         int tmp_sum = 0;
-        for (int k = 0; k < N * N; ++k) {
+        for (int k = 0; k < N * row_count_per_process; ++k) {
             if ((k+1) % N == 0)
             {
                 result_array[result_array_index_current] = tmp_sum;
@@ -172,8 +183,8 @@ int main (int argc, char *argv[])
             }
             tmp_sum += recv_buffer[k] * colwise_array[k];
         }
-        MPI_Gather(result_array, row_count_per_process * N, MPI_INT,
-        NULL, 0, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Gather(result_array, row_count_per_process * N, MPI_INT
+                ,NULL, 0, MPI_INT, 0, MPI_COMM_WORLD);
         /*int *array1 = (int*) malloc(N* sizeof(int));
         int *array2 = (int*) malloc(N* sizeof(int));
         //printf("Process %d receiving arrays\n", rank);
@@ -187,6 +198,9 @@ int main (int argc, char *argv[])
         }
         printf("Process %d sending %d to master\n", rank, sum_local);
         MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);*/
+        free(colwise_array);
+        free(recv_buffer);
+        free(result_array);
     }
     MPI_Finalize();
     return 0;
