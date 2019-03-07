@@ -104,6 +104,11 @@ int main (int argc, char *argv[])
                 printf("\n");
             printf("%d ", result_array[i]);
         }
+        free(array1);
+        free(array2);
+        free(result_array);
+        free(send_buffer);
+        free(recv_buffer);
     }
     else
     {
@@ -148,6 +153,9 @@ int main (int argc, char *argv[])
                 printf("\n");
             printf("%d ", recv_buffer[i]);
         }*/
+        free(colwise_array);
+        free(recv_buffer);
+        free(result_array);
     }
     MPI_Finalize();
     return 0;
