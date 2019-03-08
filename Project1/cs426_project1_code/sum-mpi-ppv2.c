@@ -41,39 +41,6 @@ int main (int argc, char *argv[]) {
     {
         array_length = readArrayFromFile(&arr);
         printf("Array length is %d\n", array_length);
-
-
-        /**
-         * Send an array to the clients
-         * */
-        printf("Sending data . . .\n");
-
-        /*int array_piece_length_master = (int) ceil((double )array_length / size);
-        int remainder_down_counter = (array_length % size) - 1; // -1 because master gets the first one
-        int offset = array_piece_length_master * sizeof(MPI_INT);
-        for (int l = 1; l < size; ++l)
-        {
-            int* arr_tmp = arr;
-
-            int array_piece_length = array_length / size;
-            if (remainder_down_counter > 0) {
-                array_piece_length++;
-                remainder_down_counter--;
-            }
-
-            printf ("Sending data to %d\n", l);
-            // Send length of data
-            MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
-            MPI_Send((void *) arr_tmp + offset, array_piece_length, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
-            offset += array_piece_length * sizeof(MPI_INT);
-        }
-        int sum_local = 0;
-        for (int m = 0; m < array_piece_length_master; ++m) {
-            sum_local += arr[m];
-        }*/
-        /**
-         * Calculate piece sizes and distribute remainder over them
-         * */
     }
 
     MPI_Bcast(&array_length, 1, MPI_INT, 0, MPI_COMM_WORLD); // Send array length for further calc
@@ -133,12 +100,6 @@ int main (int argc, char *argv[]) {
         for (int m = 0; m < send_counts[0]; ++m) {
             sum_local += arr[m];
         }
-        /*for (int k = 0; k < size; ++k) {
-            printf("sc %d", send_counts[k]);
-        }
-        for (int k = 0; k < size; ++k) {
-            printf("dis %d", displc[k]);
-        }*/
 
         /**
          * All Reduce
@@ -152,22 +113,6 @@ int main (int argc, char *argv[]) {
     if (rank != 0)
     {
         /**
-         * Get info from the master
-         * */
-        /*int array_length = 0;
-        MPI_Recv((void *) &array_length, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);
-        int *arr = (int*) malloc(array_length* sizeof(int));
-
-        MPI_Recv((void *) arr, array_length, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD, &s);*/
-        /*int* arr = (int*) malloc(size * sizeof(int));
-        int recv_count;
-        MPI_Scatterv(NULL, 0, NULL, MPI_INT
-                ,arr, send_counts[rank], MPI_INT, 0, MPI_COMM_WORLD);*/
-        /*for (int i = 0; i < send_counts[rank]; ++i) {
-            printf("Process %d printed%d\n", rank, recv_buffer[i]);
-        }*/
-
-        /**
          * Make calculations and return results
          * */
         int sum_local = 0;
@@ -175,13 +120,11 @@ int main (int argc, char *argv[]) {
             sum_local += recv_buffer[l];
         }
 
-        //MPI_Send ((void *)&sum_local, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
         int sum_others = 0;
         printf("Process %d starting all reduce with local sum_local %d\n", rank, sum_local);
         MPI_Allreduce( &sum_local, &sum_others, 1,
                 MPI_INT, MPI_SUM, new_world);
         printf("Process %d has total %d\n", rank, sum_others);
-        free(arr);
     }
     MPI_Finalize();
     free(arr);
