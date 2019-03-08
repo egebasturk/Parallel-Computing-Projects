@@ -75,7 +75,35 @@ int main (int argc, char *argv[]) {
          * Calculate piece sizes and distribute remainder over them
          * */
     }
+
     MPI_Bcast(&array_length, 1, MPI_INT, 0, MPI_COMM_WORLD); // Send array length for further calc
+    /**
+     * Following part handles if there will be idle processes
+     * when data is not divisible that much. I.e. removes processes
+     * which will get no data
+     * */
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Comm new_world;
+    if (array_length < size) {
+        MPI_Group mpi_world_group;
+        MPI_Comm_group(MPI_COMM_WORLD, &mpi_world_group);
+
+        MPI_Group new_group;
+        int ranges[3] = {array_length, size - 1, 1}; // first rank, last rank, stride
+        MPI_Group_range_excl(mpi_world_group, 1, ranges, &new_group);
+
+
+        MPI_Comm_create(MPI_COMM_WORLD, new_group, &new_world);
+
+
+        if (new_world == MPI_COMM_NULL) {
+            free(arr);
+            MPI_Finalize();
+            return 0;
+        }
+    } else
+        new_world = MPI_COMM_WORLD;
+
     int remainder = array_length % size;
     int *send_counts = (int *) malloc(sizeof(int) * size);
     int *displc = (int *) malloc(sizeof(int) * size);
@@ -99,7 +127,7 @@ int main (int argc, char *argv[]) {
     displc[0] = 0;
 
     recv_buffer = (int *) malloc(sizeof(int) * send_counts[0]);
-    MPI_Scatterv(arr, send_counts, displc, MPI_INT, recv_buffer, send_counts[0], MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(arr, send_counts, displc, MPI_INT, recv_buffer, send_counts[0], MPI_INT, 0, new_world);
     if (rank == 0) {
         int sum_local = 0;
         for (int m = 0; m < send_counts[0]; ++m) {
@@ -118,7 +146,7 @@ int main (int argc, char *argv[]) {
         int sum_others = 0;
         printf("Process %d starting all reduce with local sum %d\n", rank, sum_local);
         MPI_Allreduce(&sum_local, &sum_others, 1,
-                      MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+                      MPI_INT, MPI_SUM, new_world);
         printf("Process %d has total %d\n", rank, sum_others);
     }
     if (rank != 0)
@@ -151,7 +179,7 @@ int main (int argc, char *argv[]) {
         int sum_others = 0;
         printf("Process %d starting all reduce with local sum_local %d\n", rank, sum_local);
         MPI_Allreduce( &sum_local, &sum_others, 1,
-                MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+                MPI_INT, MPI_SUM, new_world);
         printf("Process %d has total %d\n", rank, sum_others);
         free(arr);
     }
