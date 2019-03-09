@@ -52,7 +52,7 @@ int main (int argc, char *argv[]) {
     int arr_lenght2 = 0;
     char* input_filename1 = argv[1];
     char* input_filename2 = argv[2];
-    char* output_file_name = argv[3];
+    char* output_filename = argv[3];
     arr_lenght1 = readMatrixFromFile(&array1, input_filename1, &N);
     arr_lenght2 = readMatrixFromFile(&array2, input_filename2, &N);
     result_array = malloc(N * N * sizeof(int));
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) {
 
     //printf("\nResult\n");
     FILE *fptr;
-    fptr = fopen(output_file_name, "w");
+    fptr = fopen(output_filename, "w");
     fprintf(fptr, "%d\n", N);
     for (int i = 0; i < N * N; ++i)
     {
