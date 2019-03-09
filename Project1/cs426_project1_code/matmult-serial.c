@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <malloc.h>
-#define LINE_LENGHT 2048
-#define INPUT_ELEMENT_SIZE 2048
-
 
 int readMatrixFromFile(int* arr[], char* input_filename, int* N)
 {
@@ -46,33 +43,34 @@ int* convertRowWiseMatrixToColumnWise(const int arr[], int N)
     printf("Converted");
     return return_array;
 }
-int main() {
+int main (int argc, char *argv[]) {
     int* array1;
     int* array2;
     int* result_array;
     int N = 0;
     int arr_lenght1 = 0;
     int arr_lenght2 = 0;
-    char* input_filename1 = "../test-input-matrix1.txt";
-    char* input_filename2 = "../test-input-matrix2.txt";
+    char* input_filename1 = argv[1];
+    char* input_filename2 = argv[2];
+    char* output_file_name = argv[3];
     arr_lenght1 = readMatrixFromFile(&array1, input_filename1, &N);
     arr_lenght2 = readMatrixFromFile(&array2, input_filename2, &N);
     result_array = malloc(N * N * sizeof(int));
 
-    printf("Matrix 1\n");
+    /*printf("Matrix 1\n");
     for (int i = 0; i < arr_lenght1; ++i)
     {
         if ((i % N) == 0)
             printf("\n");
         printf("%d ", array1[i]);
-    }
-    printf("\nMatrix 2\n");
+    }*/
+    /*printf("\nMatrix 2\n");
     for (int i = 0; i < arr_lenght2; ++i)
     {
         if ((i % N) == 0)
             printf("\n");
         printf("%d ", array2[i]);
-    }
+    }*/
 
     // 1D matrix matrix mult
     int sum_tmp = 0;
@@ -86,12 +84,15 @@ int main() {
         }
     }
 
-    printf("\nResult\n");
+    //printf("\nResult\n");
+    FILE *fptr;
+    fptr = fopen(output_file_name, "w");
+    fprintf(fptr, "%d\n", N);
     for (int i = 0; i < N * N; ++i)
     {
-        if ((i % N) == 0)
-            printf("\n");
-        printf("%d ", result_array[i]);
+        if ((i % N) == 0 && i != 0)
+            fprintf(fptr, "\n");
+        fprintf(fptr, "%d ", result_array[i]);
     }
 
     /*
@@ -104,5 +105,7 @@ int main() {
             printf("\n");
         printf("%d ", array2_colwise[i]);
     }*/
+    free(array1);
+    free(array2);
     return 0;
 }
