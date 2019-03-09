@@ -4,29 +4,36 @@
 #include <math.h>
 #define INPUT_ELEMENT_SIZE 2048
 
-int readArrayFromFile(int* arr[])
+int readArrayFromFile(int* arr[], char* input_filename)
 {
-    char* input_filename = "../test-input.txt";
+    //char* input_filename = "../input";
     FILE *fptr;
-    int* return_array = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
+    int* return_array;// = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
+    int line_count = 0;
 
     fptr = fopen(input_filename, "r");
     if (fptr == NULL)
     {
         printf("Error reading file");
         return 0;
-    } else
-    {
+    } else {
         int index = 0;
         int read_num;
-        while (fscanf(fptr, "%d", &read_num) == 1)
-        {
-            return_array[index] = read_num;
-            index++;
+        while (fscanf(fptr, "%d", &read_num) == 1) {
+            line_count++;
         }
-        *arr = return_array;
-        return index--;
     }
+    fptr = fopen(input_filename, "r");
+    return_array = malloc(line_count * sizeof(int));
+    int index = 0;
+    int read_num;
+    while (fscanf(fptr, "%d", &read_num) == 1)
+    {
+        return_array[index] = read_num;
+        index++;
+    }
+    *arr = return_array;
+    return index--;
 }
 int main (int argc, char *argv[])
 {
@@ -39,13 +46,13 @@ int main (int argc, char *argv[])
     if (rank == 0) // Master process
     {
         int* arr;
-        int array_length = readArrayFromFile(&arr);
-        printf("Array length is %d\n", array_length);
+        int array_length = readArrayFromFile(&arr, argv[1]);
+        //printf("Array length is %d\n", array_length);
 
         /**
          * Send an array to the clients
          * */
-        printf ("Sending data . . .\n");
+        //printf ("Sending data . . .\n");
 
         int array_piece_length_master = (int) ceil((double )array_length / size);
         int remainder_down_counter = (array_length % size) - 1; // -1 because master gets the first one
@@ -60,7 +67,7 @@ int main (int argc, char *argv[])
                 remainder_down_counter--;
             }
 
-            printf ("Sending data to %d\n", l);
+            //printf ("Sending data to %d\n", l);
             // Send length of data
             MPI_Send((void *) &array_piece_length, 1, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
             MPI_Send((void *) arr_tmp + offset, array_piece_length, MPI_INT, l, 0xACE5, MPI_COMM_WORLD);
@@ -74,16 +81,18 @@ int main (int argc, char *argv[])
         /**
          * Receive results from the clients
          * */
-        printf ("Receiving data . . .\n");
-        printf("Master has %d\n", sum);
+        //printf ("Receiving data . . .\n");
+        //printf("Master has %d\n", sum);
         int totalsum = sum;
         for (i = 1; i < size; i++)
         {
             MPI_Recv ((void *)&j, 1, MPI_INT, i, 0xACE5, MPI_COMM_WORLD, &s);
-            printf ("[%d] sent %d\n", i, j);
+            //printf ("[%d] sent %d\n", i, j);
             totalsum += j;
-            printf("Total sum is %d\n", totalsum);
+            //printf("Total sum is %d\n", totalsum);
         }
+        free(arr);
+        printf("%d\n", totalsum);
     }
     else
     {

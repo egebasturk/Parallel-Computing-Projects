@@ -4,29 +4,36 @@
 #include <math.h>
 #define INPUT_ELEMENT_SIZE 2048
 
-int readArrayFromFile(int* arr[])
+int readArrayFromFile(int* arr[], char* input_filename)
 {
-    char* input_filename = "../test-input.txt";
+    //char* input_filename = "../input";
     FILE *fptr;
-    int* return_array = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
+    int* return_array;// = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
+    int line_count = 0;
 
     fptr = fopen(input_filename, "r");
     if (fptr == NULL)
     {
         printf("Error reading file");
         return 0;
-    } else
-    {
+    } else {
         int index = 0;
         int read_num;
-        while (fscanf(fptr, "%d", &read_num) == 1)
-        {
-            return_array[index] = read_num;
-            index++;
+        while (fscanf(fptr, "%d", &read_num) == 1) {
+            line_count++;
         }
-        *arr = return_array;
-        return index--;
     }
+    fptr = fopen(input_filename, "r");
+    return_array = malloc(line_count * sizeof(int));
+    int index = 0;
+    int read_num;
+    while (fscanf(fptr, "%d", &read_num) == 1)
+    {
+        return_array[index] = read_num;
+        index++;
+    }
+    *arr = return_array;
+    return index--;
 }
 int main (int argc, char *argv[]) {
     MPI_Status s;
@@ -39,8 +46,8 @@ int main (int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0) // Master process
     {
-        array_length = readArrayFromFile(&arr);
-        printf("Array length is %d\n", array_length);
+        array_length = readArrayFromFile(&arr, argv[1]);
+        //printf("Array length is %d\n", array_length);
     }
 
     MPI_Bcast(&array_length, 1, MPI_INT, 0, MPI_COMM_WORLD); // Send array length for further calc
@@ -105,10 +112,11 @@ int main (int argc, char *argv[]) {
          * All Reduce
          * */
         int sum_others = 0;
-        printf("Process %d starting all reduce with local sum %d\n", rank, sum_local);
+        //printf("Process %d starting all reduce with local sum %d\n", rank, sum_local);
         MPI_Allreduce(&sum_local, &sum_others, 1,
                       MPI_INT, MPI_SUM, new_world);
-        printf("Process %d has total %d\n", rank, sum_others);
+        //printf("Process %d has total %d\n", rank, sum_others);
+        printf("%d\n", sum_others);
     }
     if (rank != 0)
     {
@@ -121,10 +129,10 @@ int main (int argc, char *argv[]) {
         }
 
         int sum_others = 0;
-        printf("Process %d starting all reduce with local sum_local %d\n", rank, sum_local);
+        //printf("Process %d starting all reduce with local sum_local %d\n", rank, sum_local);
         MPI_Allreduce( &sum_local, &sum_others, 1,
                 MPI_INT, MPI_SUM, new_world);
-        printf("Process %d has total %d\n", rank, sum_others);
+        //printf("Process %d has total %d\n", rank, sum_others);
     }
     MPI_Finalize();
     free(arr);
