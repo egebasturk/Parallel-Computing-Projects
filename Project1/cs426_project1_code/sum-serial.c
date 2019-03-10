@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <malloc.h>
-#define LINE_LENGHT 2048
-#define INPUT_ELEMENT_SIZE 2048
+#include <time.h>
 
 int readArrayFromFile(int* arr[], char* input_filename)
 {
-    //char* input_filename = "../input";
+    //char* input_filename = "../input_100";
     FILE *fptr;
     int* return_array;// = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
     int line_count = 0;
@@ -35,6 +34,9 @@ int readArrayFromFile(int* arr[], char* input_filename)
     return index--;
 }
 int main (int argc, char *argv[]) {
+    clock_t start, end;
+    start = clock();
+
     int* array;
     int arr_lenght = 0;
     arr_lenght = readArrayFromFile(&array, argv[1]);
@@ -46,5 +48,7 @@ int main (int argc, char *argv[]) {
     }
     printf("%d\n", sum);
     free(array);
+    end = clock();
+    printf("Time Elapsed: %f", (double)(end - start) / CLOCKS_PER_SEC);
     return 0;
 }

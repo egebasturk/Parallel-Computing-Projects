@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <malloc.h>
+#include <time.h>
 
 int readMatrixFromFile(int* arr[], char* input_filename, int* N)
 {
@@ -50,6 +51,9 @@ int main (int argc, char *argv[]) {
     int N = 0;
     int arr_lenght1 = 0;
     int arr_lenght2 = 0;
+    clock_t start, end;
+    start = clock();
+
     char* input_filename1 = argv[1];
     char* input_filename2 = argv[2];
     char* output_filename = argv[3];
@@ -107,5 +111,8 @@ int main (int argc, char *argv[]) {
     }*/
     free(array1);
     free(array2);
+    free(result_array);
+    end = clock();
+    printf("Time Elapsed: %f", (double)(end - start) / CLOCKS_PER_SEC);
     return 0;
 }

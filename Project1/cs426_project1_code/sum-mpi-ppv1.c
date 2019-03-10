@@ -6,7 +6,7 @@
 
 int readArrayFromFile(int* arr[], char* input_filename)
 {
-    //char* input_filename = "../input";
+    //char* input_filename = "../input_100";
     FILE *fptr;
     int* return_array;// = malloc(INPUT_ELEMENT_SIZE * sizeof(int));
     int line_count = 0;
@@ -41,6 +41,9 @@ int main (int argc, char *argv[])
     int size, rank, i, j;
 
     MPI_Init (&argc, &argv);
+    double start, end;
+    MPI_Barrier(MPI_COMM_WORLD);
+    start = MPI_Wtime();
     MPI_Comm_size (MPI_COMM_WORLD, &size);
     MPI_Comm_rank (MPI_COMM_WORLD, &rank);
     if (rank == 0) // Master process
@@ -114,7 +117,13 @@ int main (int argc, char *argv[])
         }
 
         MPI_Send ((void *)&sum, 1, MPI_INT, 0, 0xACE5, MPI_COMM_WORLD);
+        free(arr);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+    end = MPI_Wtime();
     MPI_Finalize();
+
+    if(rank == 0)
+        printf("Process %d elapsed time: %f\n", rank, (end - start));
     return 0;
 }
