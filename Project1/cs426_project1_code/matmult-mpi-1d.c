@@ -70,119 +70,6 @@ int main (int argc, char *argv[])
     MPI_Init (&argc, &argv);
     MPI_Comm_size (MPI_COMM_WORLD, &size);
     MPI_Comm_rank (MPI_COMM_WORLD, &rank);
-    /*
-    if (rank == 0) // Master process
-    {
-        int* array1;
-        int* array2;
-        int* result_array;
-        char* input_filename1 = argv[1];
-        char* input_filename2 = argv[2];
-        readMatrixFromFile(&array1, input_filename1, &N);
-        readMatrixFromFile(&array2, input_filename2, &N);
-        int* array2_colwise = convertRowWiseMatrixToColumnWise(array2, N);
-        for (int i = 0; i < N * N; ++i)
-        {
-            if ((i % N) == 0)
-                printf("\n");
-            printf("%d ", array2_colwise[i]);
-        }
-
-        result_array = malloc(N * N * sizeof(int));
-        printf("Array length is %d\n", N*N);
-        printf ("Sending data . . .\n");
-
-        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);               // Bcast array dimension
-        MPI_Bcast(array2_colwise, N*N, MPI_INT, 0, MPI_COMM_WORLD); // Bcast colwise 2nd array
-        */
-        /*int current_row = 0;
-        int current_col = 1;
-        int current_worker_rank = 1;
-        int process_count_per_node = (N * N) / size;
-        for (int i = 1; i < N * N; ++i) {
-            // Wrap arounds
-            if ((i+1) % N == 0) {
-                current_row++;
-            }
-            if (current_worker_rank == size) {
-                current_worker_rank = 0;
-            }
-            int send_offset = current_worker_rank * N * process_count_per_node * sizeof(int); // Send the row
-            MPI_Send(array1 + send_offset, N, MPI_INT, current_worker_rank, 666, MPI_COMM_WORLD);
-        }
-        */
-        /*
-        int row_count_per_process = N / size;
-        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(int));
-
-        MPI_Scatter(array1,
-            N * row_count_per_process, MPI_INT, recv_buffer,
-            row_count_per_process * N, MPI_INT, 0, MPI_COMM_WORLD);
-
-        int* send_buffer = (int*)malloc(sizeof(int) * N * row_count_per_process);
-        int tmp_sum = 0;
-        int i = 0, j = 0;
-        for (; j < N; ++j) {
-            for (; i < row_count_per_process * N; ++i) {
-                tmp_sum += recv_buffer[i] * array2_colwise[i + j*N];
-            }
-            send_buffer[j] = tmp_sum;
-            tmp_sum = 0;
-            i = 0;
-        }
-        MPI_Gather(send_buffer, N * row_count_per_process, MPI_INT,
-                   result_array, N * row_count_per_process,
-                   MPI_INT, 0, MPI_COMM_WORLD);
-        printf("\nResult\n");
-        for (int i = 0; i < N * N; ++i)
-        {
-            if ((i % N) == 0)
-                printf("\n");
-            printf("%d ", result_array[i]);
-        }
-
-        free(array1);
-        free(array2);
-        free(result_array);
-        //free(send_buffer);
-        //free(recv_buffer);
-    }
-    else
-    {
-        int* colwise_array;
-
-        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);               // Get N, matrix dim
-        colwise_array = (int*) malloc(N * N * sizeof(int));         // Create buffer
-        MPI_Bcast(colwise_array, N*N, MPI_INT, 0, MPI_COMM_WORLD);  // Get the 2nd matrix
-
-        printf("Process %d Received array with N %d\n", rank, N);
-
-        int row_count_per_process = N / size;
-        int* recv_buffer = (int*)malloc(N * row_count_per_process * sizeof(int));
-        MPI_Scatter(NULL, 0, MPI_INT
-                , recv_buffer, row_count_per_process * N, MPI_INT
-                , 0, MPI_COMM_WORLD);
-
-        int* result_array = (int*)malloc(N * row_count_per_process * sizeof(int));
-        int tmp_sum = 0;
-        int i = 0, j = 0;
-        for (; j < N; ++j) {
-            for (; i < row_count_per_process * N; ++i) {
-                tmp_sum += recv_buffer[i] * colwise_array[i + j*N];
-            }
-            result_array[j] = tmp_sum;
-            tmp_sum = 0;
-            i = 0;
-        }
-
-        MPI_Gather(result_array, row_count_per_process * N, MPI_INT
-                , NULL, 0, MPI_INT, 0, MPI_COMM_WORLD);
-
-        free(colwise_array);
-        free(recv_buffer);
-        free(result_array);
-    }
-    */
     int color;
     MPI_Comm* comms;
 
@@ -326,7 +213,6 @@ int main (int argc, char *argv[])
             fprintf(fptr, "%d ", result_array[i]);
         }
     }
-
 
     MPI_Barrier(MPI_COMM_WORLD);
     free(partial_result);
