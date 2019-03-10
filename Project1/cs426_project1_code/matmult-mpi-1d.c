@@ -210,7 +210,7 @@ int main (int argc, char *argv[])
     // Split based on rows. Shouldn't be a problem since expecting square matrices.
     MPI_Barrier(MPI_COMM_WORLD);
     int grid_side = N / sqrt(size); // Will be int because of project specs.
-    color = rank / (grid_side * N);
+    color = rank / (N / grid_side );
     //printf("Color of %d: %d\n", rank, color);
     MPI_Comm comm_row;
     MPI_Comm_split(MPI_COMM_WORLD, color, rank, &comm_row);
@@ -225,32 +225,37 @@ int main (int argc, char *argv[])
     MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
     int tmp = N / grid_side;
+    printf("TMP is : %d\n", tmp);
     int count_tmp[ tmp ];
     int i = 0;
     for (int j = 0; j < size; ++j) {
-        if (j / (grid_side * N) == i * grid_side) {
+        if (j % (N / grid_side) == 0) {
             count_tmp[i] = j;
             //printf("%d\t", j);
             i++;
         }
     }
-    /*printf("%d\n", tmp);
+    //printf("%d\n", tmp);
     for (int k = 0; k < tmp; ++k) {
         printf("%d\t", count_tmp[k]);
-    }*/
+    }
 
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Group_incl(world_group, tmp, count_tmp, &master_world_group);
     MPI_Comm master_comm;
     MPI_Comm_create_group(MPI_COMM_WORLD, master_world_group, MASTER_TAG, &master_comm);
-    //if (master_comm != MPI_COMM_NULL)
-      //  printf("Not null %d\n", rank);
+    if (master_comm != MPI_COMM_NULL)
+        printf("Not null %d\n", rank);
 
     // Scatter to grid groups as rows
     // BCast the second array to group masters
     recv_buffer = (int*)malloc(N * grid_side * sizeof(int));
     MPI_Barrier(MPI_COMM_WORLD);
-    if (rank_row % N == 0)
+
+
+    if (rank != 0)
+        array2_colwise = malloc(N * N * sizeof(int)); // Master reads this but others don't have the buff
+    if (rank % (N / grid_side) == 0)
     {
         /*MPI_Comm master_world;
         int tmp = rank / (grid_side * N);
@@ -263,23 +268,20 @@ int main (int argc, char *argv[])
             }
         }
         */
-        if (rank != 0)
-            array2_colwise = malloc(N * N * sizeof(int));
-        //printf("Scatterin %d\n", rank);
-
+        printf("Color:%d\n", color);
+        printf("Scatterin %d\n", rank);
         MPI_Scatter(array1
                 , N * grid_side, MPI_INT, recv_buffer
                 , N * grid_side, MPI_INT, 0, master_comm);
-        //printf("Scatter done on %d\n", rank);
+        printf("Scatter done on %d\n", rank);
         MPI_Bcast(array2_colwise
                 , N*N, MPI_INT, 0, master_comm);
-        //printf("Bcast to group masters done on %d\n", rank);
+        printf("Bcast to group masters done on %d\n", rank);
         MPI_Barrier(master_comm); // Delete after debug
     }
     MPI_Barrier(MPI_COMM_WORLD); // Delete after debug
-    //if (rank == 0)
-        //printf("Barrier passed\n");
-
+    if (rank == 0)
+        printf("Barrier passed\n");
 
     int recv_buf_size = grid_side * N;
     int* recv_col_buf = malloc( recv_buf_size * sizeof(int)); // should be same calc. here
@@ -291,6 +293,7 @@ int main (int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Bcast(recv_buffer, N * grid_side, MPI_INT, 0, comm_row);
     //printf("SCATTERING TO ROWS\n");
+
     MPI_Scatter(array2_colwise
             , (N * grid_side), MPI_INT, recv_col_buf
             , recv_buf_size, MPI_INT, 0, comm_row);
@@ -330,9 +333,7 @@ int main (int argc, char *argv[])
     free(recv_buffer);
     free(recv_col_buf);
     free(result_array);
-    if (rank_row % N == 0) {
-        free(array2_colwise);
-    }
+    free(array2_colwise);
     if(rank == 0){
         free(array1);
         free(array2);
