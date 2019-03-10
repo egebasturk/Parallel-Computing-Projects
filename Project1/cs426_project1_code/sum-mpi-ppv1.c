@@ -123,7 +123,7 @@ int main (int argc, char *argv[])
     end = MPI_Wtime();
     MPI_Finalize();
 
-    if(rank == 0)
-        printf("Process %d elapsed time: %f\n", rank, (end - start));
+    //if(rank == 0)
+        //printf("Process %d elapsed time: %f\n", rank, (end - start));
     return 0;
 }

@@ -49,6 +49,6 @@ int main (int argc, char *argv[]) {
     printf("%d\n", sum);
     free(array);
     end = clock();
-    printf("Time Elapsed: %f", (double)(end - start) / CLOCKS_PER_SEC);
+    //printf("Time Elapsed: %f", (double)(end - start) / CLOCKS_PER_SEC);
     return 0;
 }
