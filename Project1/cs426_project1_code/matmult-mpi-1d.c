@@ -46,7 +46,7 @@ int* convertRowWiseMatrixToColumnWise(const int arr[], int N)
 }
 int* matrixMatrixMultSerial(int *mat1, int *mat2, int dim1, int dim2) // Dim 2 is the big one. Output will be a square matrix because of project specs.
 {
-    printf("dim1:%d dim2:%d\n", dim1, dim2);
+    //printf("dim1:%d dim2:%d\n", dim1, dim2);
     int *result = (int*) malloc(dim1 * dim1 * sizeof(int));
     int sum_tmp = 0;
     for (int row = 0; row < dim1; ++row) {
@@ -54,7 +54,7 @@ int* matrixMatrixMultSerial(int *mat1, int *mat2, int dim1, int dim2) // Dim 2 i
             for (int i = 0; i < dim2; ++i) {
                 sum_tmp += mat1[row * dim2 + i] * mat2[column * dim2 + i];
             }
-            printf("col:%d/%d row:%d/%d \tsumtmp: %d\n", column, dim1, row, dim1, sum_tmp);
+            //printf("col:%d/%d row:%d/%d \tsumtmp: %d\n", column, dim1, row, dim1, sum_tmp);
             result[column + row * dim1] = sum_tmp;
             sum_tmp = 0;
         }
@@ -205,8 +205,8 @@ int main (int argc, char *argv[])
         printf("Array length is %d\n", N*N);
         printf ("Sending data . . .\n");
     }
-    result_array  = malloc(N * N * sizeof(int));
     MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);               // Bcast array dimension
+    result_array  = malloc(N * N * sizeof(int));
     // Split based on rows. Shouldn't be a problem since expecting square matrices.
     MPI_Barrier(MPI_COMM_WORLD);
     int grid_side = N / sqrt(size); // Will be int because of project specs.
@@ -277,8 +277,8 @@ int main (int argc, char *argv[])
         MPI_Barrier(master_comm); // Delete after debug
     }
     MPI_Barrier(MPI_COMM_WORLD); // Delete after debug
-    if (rank == 0)
-        printf("Barrier passed\n");
+    //if (rank == 0)
+        //printf("Barrier passed\n");
 
 
     int recv_buf_size = grid_side * N;
@@ -289,11 +289,18 @@ int main (int argc, char *argv[])
     int offset = (rank_row) * N * sizeof(int);
     //printf("Comm row of %d: %d\n", rank, comm_row);
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Bcast(recv_buffer + offset, N * grid_side, MPI_INT, 0, comm_row);
+    MPI_Bcast(recv_buffer, N * grid_side, MPI_INT, 0, comm_row);
     //printf("SCATTERING TO ROWS\n");
     MPI_Scatter(array2_colwise
             , (N * grid_side), MPI_INT, recv_col_buf
             , recv_buf_size, MPI_INT, 0, comm_row);
+    if (rank == 0)
+    {
+        for (int j = 0; j < N * grid_side; ++j) {
+            printf("%d\t", recv_col_buf[j]);
+        }
+        printf("\n");
+    }
     //printf("PROCESS %d SCATTERED TO ROWS\n", rank);
     int* partial_result;
     //printf("Grid size is: %d\n", grid_side);
@@ -318,17 +325,18 @@ int main (int argc, char *argv[])
     }
 
 
-
+    MPI_Barrier(MPI_COMM_WORLD);
     free(partial_result);
     free(recv_buffer);
     free(recv_col_buf);
     free(result_array);
+    if (rank_row % N == 0) {
+        free(array2_colwise);
+    }
     if(rank == 0){
         free(array1);
         free(array2);
-        free(array2_colwise);
     }
     MPI_Finalize();
-
     return 0;
 }
