@@ -9,4 +9,4 @@ link_libraries(mpi)
 link_libraries(m)
 
 #add_executable(cs426_project2_code main.c)
-add_executable(main main.c)
+add_executable(main main.c utils.h utils.cpp)
