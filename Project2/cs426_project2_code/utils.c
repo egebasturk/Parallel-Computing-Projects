@@ -21,10 +21,13 @@ int** readDocuments(char* inputDocFilename, int dictionarySize)
     printf("Line Count: %d\n", lineCount);
     printf("D: %d\n", dictionarySize);
 
-    if (fptr == NULL) {
-        printf("Error reading file");
+    if (fptr == NULL)
+    {
+        printf("Error reading Documents file");
         return NULL;
-    } else {
+    }
+    else
+    {
         int readNum;
 
         int** returnArray = (int**)malloc(lineCount * sizeof(int*));
@@ -36,7 +39,8 @@ int** readDocuments(char* inputDocFilename, int dictionarySize)
             fscanf(fptr, "%d:", &readNum); // Hope input is formatted as defined in the project
             returnArray[index][0] = readNum;
 
-            for (int i = 1; i <= dictionarySize; i++) { // Run for the part after index
+            for (int i = 1; i <= dictionarySize; i++) // Run for the part after index
+            {
                 int tmp = INVALID_VALUE;
                 fscanf(fptr, "%d", &tmp);
                 returnArray[index][i] = tmp;
@@ -44,4 +48,28 @@ int** readDocuments(char* inputDocFilename, int dictionarySize)
         }
         return returnArray;
     }
+}
+int* readQuery(char* inputQueryFilename, int dictionarySize)
+{
+    FILE *fptr;
+    fptr = fopen(inputQueryFilename, "r");
+    int lineCount = getLineCount(fptr);
+    int *returnArray;
+
+    if (fptr == NULL)
+    {
+        printf("Error reading Query file");
+        return NULL;
+    }
+    else
+    {
+        returnArray = (int *) malloc(dictionarySize * sizeof(int));
+        for (int i = 0; i < dictionarySize; i++)
+        {
+            int tmp = INVALID_VALUE;
+            fscanf(fptr, "%d", &tmp);
+            returnArray[i] = tmp;
+        }
+    }
+    return returnArray;
 }

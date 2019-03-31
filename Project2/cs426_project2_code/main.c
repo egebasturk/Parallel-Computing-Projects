@@ -29,17 +29,33 @@ int main(int argc, char *argv[]) {
     int dictionarySize = 4; //TODO: change this
     int dictionarySizeWithIDPadding = dictionarySize + 1;
     int lineCount = 3;
-    int** documentMatrix = readDocuments("../documents.txt", dictionarySize);
+    char* filenameInputDoc = "../documents.txt";
+    char* filenameInputQuery = "../query.txt";
+
+    int** documentMatrix = readDocuments( filenameInputDoc, dictionarySize);
+    int* queryArray      = readQuery( filenameInputQuery, dictionarySize);
+
+
+    // DEBUG PRINT
     for (int i = 0; i < lineCount; ++i) {
         for (int j = 0; j < dictionarySizeWithIDPadding; ++j) {
             printf("%d\t", documentMatrix[i][j]);
         }
         printf("\n");
     }
+    for (int k = 0; k < dictionarySize; ++k) {
+        printf("%d\t", queryArray[k]);
+    }
+    printf("\n");
+    // END DEBUG PRINT
+
+
+    // Cleanup
     for (int i = 0; i < lineCount; ++i) {
         free(documentMatrix[i]);
     }
     free(documentMatrix);
+    free(queryArray);
 
     return 0;
 }

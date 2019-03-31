@@ -5,3 +5,4 @@
 #define INVALID_VALUE -666
 
 int** readDocuments(char* inputDocFilename, int dictionarySize);
+int* readQuery(char* inputQueryFilename, int dictionarySize);
