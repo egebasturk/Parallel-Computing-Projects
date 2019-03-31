@@ -29,14 +29,14 @@ int** readDocuments(char* inputDocFilename, int dictionarySize)
 
         int** returnArray = (int**)malloc(lineCount * sizeof(int*));
         for (int i = 0; i < lineCount; i++)
-            returnArray[i] = (int*)malloc(dictionarySize * sizeof(int));
+            returnArray[i] = (int*)malloc((dictionarySize + 1) * sizeof(int));
 
         for (int index = 0; index < lineCount; ++index)
         {
             fscanf(fptr, "%d:", &readNum); // Hope input is formatted as defined in the project
             returnArray[index][0] = readNum;
 
-            for (int i = 0; i < dictionarySize; i++) { // Run for the part after index
+            for (int i = 1; i <= dictionarySize; i++) { // Run for the part after index
                 int tmp = INVALID_VALUE;
                 fscanf(fptr, "%d", &tmp);
                 returnArray[index][i] = tmp;

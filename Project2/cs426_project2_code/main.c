@@ -29,9 +29,9 @@ int main(int argc, char *argv[]) {
     int dictionarySize = 4; //TODO: change this
     int dictionarySizeWithIDPadding = dictionarySize + 1;
     int lineCount = 3;
-    int** documentMatrix = readDocuments("../documents.txt", dictionarySizeWithIDPadding);
+    int** documentMatrix = readDocuments("../documents.txt", dictionarySize);
     for (int i = 0; i < lineCount; ++i) {
-        for (int j = 0; j < dictionarySize; ++j) {
+        for (int j = 0; j < dictionarySizeWithIDPadding; ++j) {
             printf("%d\t", documentMatrix[i][j]);
         }
         printf("\n");
