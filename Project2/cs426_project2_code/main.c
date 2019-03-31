@@ -9,6 +9,7 @@
  * */
 
 #include <stdio.h>
+#include "utils.h"
 
 
 
@@ -24,6 +25,21 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
 
 
 int main(int argc, char *argv[]) {
+
+    int dictionarySize = 4; //TODO: change this
+    int dictionarySizeWithIDPadding = dictionarySize + 1;
+    int lineCount = 3;
+    int** documentMatrix = readDocuments("../documents.txt", dictionarySizeWithIDPadding);
+    for (int i = 0; i < lineCount; ++i) {
+        for (int j = 0; j < dictionarySize; ++j) {
+            printf("%d\t", documentMatrix[i][j]);
+        }
+        printf("\n");
+    }
+    for (int i = 0; i < lineCount; ++i) {
+        free(documentMatrix[i]);
+    }
+    free(documentMatrix);
 
     return 0;
 }
