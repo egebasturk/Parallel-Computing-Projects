@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include "utils.h"
-
+#define TAG1 1
 
 
 // A collective comm. function
@@ -23,29 +23,109 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
 
 }
 
+// Subroutine to calculate similarity of single record with the query
+int calculateSimilarity(int vals[], int query[], int dictionarySize)
+{
+    int sim = 0;
+    for (int i = 0; i < dictionarySize; ++i) {
+        sim += pow(vals[i],query[i]);
+    }
+    return sim;
+}
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
+    int rank, size;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    /// MAster values
     int dictionarySize = 0;
     int lineCount = 0;
-    char* filenameInputDoc   = argv[1];//"../documents.txt";
-    char* filenameInputQuery = argv[2];// "../query.txt";
+    char *filenameInputDoc;
+    char *filenameInputQuery;
+    int **documentMatrix;
+    int *queryArray;
 
-    int** documentMatrix = readDocuments( filenameInputDoc, &dictionarySize, &lineCount);
-    int* queryArray      = readQuery( filenameInputQuery, dictionarySize);
-    int dictionarySizeWithIDPadding = dictionarySize + 1;
+    if (rank == 0)
+    {
+        filenameInputDoc = argv[1];//"../documents.txt";
+        filenameInputQuery = argv[2];// "../query.txt";
 
-    // DEBUG PRINT
-    DEBUG_PRINT_INPUT
-    // END DEBUG PRINT
+        documentMatrix = readDocuments(filenameInputDoc, &dictionarySize, &lineCount);
+        queryArray = readQuery(filenameInputQuery, dictionarySize);
+        int dictionarySizeWithIDPadding = dictionarySize + 1;
 
-
-    // Cleanup
-    for (int i = 0; i < lineCount; ++i) {
-        free(documentMatrix[i]);
+        // DEBUG PRINT
+        DEBUG_PRINT_INPUT
+        // END DEBUG PRINT
+        /// Send dictionary size and line count to others
+        for (int l = 1; l < size; ++l) {
+            MPI_Send(&dictionarySize, 1, MPI_INT, l, TAG1, MPI_COMM_WORLD);
+            MPI_Send(&lineCount, 1, MPI_INT, l, TAG1, MPI_COMM_WORLD);
+        }
     }
-    free(documentMatrix);
-    free(queryArray);
+    else /// Get dicsize and line count from the root
+    {
+        MPI_Recv(&dictionarySize, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&lineCount, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
 
+
+    int *dataPortionLengths = (int *) malloc(sizeof(int) * size);
+    int *displc = (int *) malloc(sizeof(int) * size);
+    int *recv_buffer;
+    /// Following partitions line counts equally, then it distributes remaining in RR
+    /// Data will be sent according to these values later
+    /// Rather simple computation, everyone can compute same thing for themselves
+
+    int remainingElementCount = lineCount;
+    for (int i = 0; i < size; i++) {
+        dataPortionLengths[i] = dictionarySize / size;
+        remainingElementCount -= dataPortionLengths[i];
+    }
+    int i = 0;
+    while (remainingElementCount > 0) {
+        dataPortionLengths[i % size]++;
+        remainingElementCount--;
+        i++;
+    }
+    displc[0] = 0; // No displacement for the initial one
+    for (int j = 1; j < size; ++j) {
+        displc[j] = dataPortionLengths[j - 1] + displc[j - 1];
+    }
+    displc[0] = 0;
+    int** myDocumentPartMatrix = (int**)malloc(dataPortionLengths[rank] * sizeof(int*));
+
+    /// Send actual data to everyone according to offsets calculated from the portions
+    int documentMatrixRowSize = (dictionarySize + 1) * sizeof(int); // +1 for ID slot
+    if (rank == 0)
+    {
+        for (int j = 1; j < size; ++j)
+        {
+            MPI_Send(documentMatrix[displc[j]], dataPortionLengths[j] * documentMatrixRowSize
+            , MPI_INT, j, TAG1, MPI_COMM_WORLD);
+        }
+    }
+    else
+    {
+        MPI_Recv((myDocumentPartMatrix, dataPortionLengths[rank] * documentMatrixRowSize
+        , MPI_INT, 1, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+
+
+    if (rank == 0)
+    {
+        // Cleanup
+        for (int i = 0; i < lineCount; ++i) {
+            free(documentMatrix[i]);
+        }
+        free(documentMatrix);
+        free(queryArray);
+    }
+    free(dataPortionLengths);
     return 0;
+
 }

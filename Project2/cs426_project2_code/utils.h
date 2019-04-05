@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <mpi.h>
+#include <math.h>
 #define INVALID_VALUE -666
 
 int** readDocuments(char* inputDocFilename, int* dictionarySizeReturn, int* lineCountReturn);
