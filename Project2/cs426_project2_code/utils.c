@@ -1,3 +1,4 @@
+#include <memory.h>
 #include "utils.h"
 
 
@@ -13,13 +14,31 @@ int getLineCount(FILE* fptr)
         count++;
     return count;
 }
-int** readDocuments(char* inputDocFilename, int dictionarySize)
+int** readDocuments(char* inputDocFilename, int* dictionarySizeReturn, int* lineCountReturn)
 {
     FILE *fptr;
     fptr = fopen(inputDocFilename, "r");
     int lineCount = getLineCount(fptr);
-    printf("Line Count: %d\n", lineCount);
-    printf("D: %d\n", dictionarySize);
+    int dictionarySize = 0;
+    *lineCountReturn = lineCount;
+
+    /// Read first line to determine directory size
+    char* readBuffer = malloc(1024 * sizeof(char));
+    fgets(readBuffer, 1024, fptr);
+    //printf("The line is: %s\n", readBuffer);
+    fseek(fptr, 0L, SEEK_SET); // Reset file pointer to start of the file
+
+    int tmp;
+    for (int j = 0; j < 1024; ++j) {
+        if (readBuffer[j] == ' ')
+            dictionarySize++;
+    }
+    free(readBuffer);
+    *dictionarySizeReturn = dictionarySize;
+
+    //printf("Line Count: %d\n", lineCount);
+    //printf("D: %d\n", dictionarySize);
+    /// END Read first line to determine directory size
 
     if (fptr == NULL)
     {
