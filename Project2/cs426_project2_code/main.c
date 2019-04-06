@@ -19,16 +19,22 @@
 // myvals: keep similarity val.s of the documents
 // k: how many elements will be selected
 // myids.size == myvals.size == k
-void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int my_rank) {
-
+void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int my_rank)
+{
+    if (my_rank == 0) // Master
+    {
+        leastk = malloc(k * sizeof(int));
+    }
 }
 
 // Subroutine to calculate similarity of single record with the query
 int calculateSimilarity(int vals[], int query[], int dictionarySize)
 {
+    //printf("DICTIONARYSIZE%d\n", dictionarySize);
     int sim = 0;
     for (int i = 0; i < dictionarySize; ++i) {
         sim += pow(vals[i],query[i]);
+        //printf("IN CALCULATE SIMILARITY i is:%d\n", i);
     }
     return sim;
 }
@@ -64,12 +70,15 @@ int main(int argc, char *argv[])
         for (int l = 1; l < size; ++l) {
             MPI_Send(&dictionarySize, 1, MPI_INT, l, TAG1, MPI_COMM_WORLD);
             MPI_Send(&lineCount, 1, MPI_INT, l, TAG1, MPI_COMM_WORLD);
+            MPI_Send(queryArray, dictionarySize, MPI_INT, l, TAG1, MPI_COMM_WORLD);
         }
     }
     else /// Get dicsize and line count from the root
     {
         MPI_Recv(&dictionarySize, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&lineCount, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        queryArray = malloc(dictionarySize * sizeof(int));
+        MPI_Recv(queryArray, dictionarySize, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
 
@@ -89,11 +98,19 @@ int main(int argc, char *argv[])
         remainingElementCount--;
         i++;
     }
-    int** myDocumentPartMatrix = (int**)malloc(dataPortionLengths[rank] * sizeof(int*));
+    int** myDocumentPartMatrix;
+    if (rank != 0)
+    {
+        myDocumentPartMatrix = (int **) malloc(dataPortionLengths[rank] * sizeof(int *));
 
-    /// Send actual data to everyone according to offsets calculated from the portions
-    for (int i = 0; i < dataPortionLengths[rank]; i++)
-        myDocumentPartMatrix[i] = (int*)malloc((dictionarySize + 1) * sizeof(int));
+        /// Send actual data to everyone according to offsets calculated from the portions
+        for (int i = 0; i < dataPortionLengths[rank]; i++)
+            myDocumentPartMatrix[i] = (int *) malloc((dictionarySize + 1) * sizeof(int));
+    }
+    else
+    {
+        myDocumentPartMatrix = documentMatrix;
+    }
 
     /*if (rank == 0) {
         for (int m = 0; m < size; ++m) {
@@ -107,7 +124,7 @@ int main(int argc, char *argv[])
         //tmpRowPtr += dataPortionLengths[0];
         for (int j = 1, counter = dataPortionLengths[0]; j < size; ++j) // For each other noed
         {
-            printf("MASTER sending with ID%d\n", tmpRowPtr[0]);
+            //printf("MASTER sending with ID%d\n", tmpRowPtr[0]);
             for (int k = 0; k < dataPortionLengths[j]; ++k)             // Send each row
             {
                 printf("%d:%d\n", j, k);
@@ -125,15 +142,22 @@ int main(int argc, char *argv[])
         {
             MPI_Recv(myDocumentPartMatrix[j], (dictionarySize + 1)
                     , MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            for (int k = 0; k < dictionarySize + 1; ++k) {
+            /*for (int k = 0; k < dictionarySize + 1; ++k) {
                 printf("%d\t", myDocumentPartMatrix[j][k]);
             }
-            printf("\n");
+            printf("\n");*/
         }
 
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    /// At this point, every node has its part
+    int* similarities = malloc(dataPortionLengths[rank] * sizeof(int));
+    for (int m = 0; m < dataPortionLengths[rank]; ++m)
+    {
+        similarities[m] = calculateSimilarity(&myDocumentPartMatrix[m][1],
+                queryArray, dictionarySize);
+        printf("%d\t", similarities[m]);
+    }
+    printf("\n");
 
     /// Cleanup
     if (rank == 0)
@@ -142,14 +166,15 @@ int main(int argc, char *argv[])
             free(documentMatrix[i]);
         }
         free(documentMatrix);
-        free(queryArray);
+    } else {
+        for (int i = 0; i < dataPortionLengths[rank]; ++i) {
+            free(myDocumentPartMatrix[i]);
+        }
+        free(myDocumentPartMatrix);
     }
-    for (int i = 0; i < dataPortionLengths[rank]; ++i) {
-        free(myDocumentPartMatrix[i]);
-    }
+    free(queryArray);
     free(dataPortionLengths);
-    free(myDocumentPartMatrix);
-
+    free(similarities);
     MPI_Finalize();
     return 0;
 
