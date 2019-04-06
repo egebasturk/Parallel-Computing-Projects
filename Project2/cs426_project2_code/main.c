@@ -91,6 +91,12 @@ int main(int argc, char *argv[])
         remainingElementCount--;
         i++;
     }
+    /// DEBUG
+    //for (int m = 0; m < size; ++m) {
+        //printf("%d\t", dataPortionLengths[m]);
+    //}
+    //printf("\n");
+    /// END DEBUG
     displc[0] = 0; // No displacement for the initial one
     for (int j = 1; j < size; ++j) {
         displc[j] = dataPortionLengths[j - 1] + displc[j - 1];
@@ -99,33 +105,58 @@ int main(int argc, char *argv[])
     int** myDocumentPartMatrix = (int**)malloc(dataPortionLengths[rank] * sizeof(int*));
 
     /// Send actual data to everyone according to offsets calculated from the portions
-    int documentMatrixRowSize = (dictionarySize + 1) * sizeof(int); // +1 for ID slot
+    for (int i = 0; i < dataPortionLengths[rank]; i++)
+        myDocumentPartMatrix[i] = (int*)malloc((dictionarySize + 1) * sizeof(int));
+
+
+    /*if (rank == 0) {
+        for (int m = 0; m < size; ++m) {
+            printf("%d\t", dataPortionLengths[m]);
+        }
+        printf("\n");
+    }*/
     if (rank == 0)
     {
+        int* tmpRowPtr = documentMatrix[0];
+        tmpRowPtr += dataPortionLengths[0];
         for (int j = 1; j < size; ++j)
         {
-            MPI_Send(documentMatrix[displc[j]], dataPortionLengths[j] * documentMatrixRowSize
-            , MPI_INT, j, TAG1, MPI_COMM_WORLD);
+            for (int k = 0; k < dataPortionLengths[j]; ++k)
+            {
+                printf("%d:%d\n", j, k);
+                MPI_Send(tmpRowPtr, (dictionarySize + 1), MPI_INT, j, TAG1,
+                         MPI_COMM_WORLD);
+                tmpRowPtr++;
+            }
         }
     }
     else
     {
-        MPI_Recv((myDocumentPartMatrix, dataPortionLengths[rank] * documentMatrixRowSize
-        , MPI_INT, 1, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        for (int j = 0; j < dataPortionLengths[rank]; ++j)
+        {
+            MPI_Recv(myDocumentPartMatrix[j], (dictionarySize + 1)
+                    , MPI_INT, 1, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
     }
 
 
 
+    /// Cleanup
     if (rank == 0)
     {
-        // Cleanup
         for (int i = 0; i < lineCount; ++i) {
             free(documentMatrix[i]);
         }
         free(documentMatrix);
         free(queryArray);
     }
+    for (int i = 0; i < dataPortionLengths[rank]; ++i) {
+        free(myDocumentPartMatrix[i]);
+    }
     free(dataPortionLengths);
+    free(myDocumentPartMatrix);
+    free(displc);
+
     return 0;
 
 }
