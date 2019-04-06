@@ -74,8 +74,6 @@ int main(int argc, char *argv[])
 
 
     int *dataPortionLengths = (int *) malloc(sizeof(int) * size);
-    int *displc = (int *) malloc(sizeof(int) * size);
-    int *recv_buffer;
     /// Following partitions line counts equally, then it distributes remaining in RR
     /// Data will be sent according to these values later
     /// Rather simple computation, everyone can compute same thing for themselves
@@ -91,23 +89,11 @@ int main(int argc, char *argv[])
         remainingElementCount--;
         i++;
     }
-    /// DEBUG
-    //for (int m = 0; m < size; ++m) {
-        //printf("%d\t", dataPortionLengths[m]);
-    //}
-    //printf("\n");
-    /// END DEBUG
-    displc[0] = 0; // No displacement for the initial one
-    for (int j = 1; j < size; ++j) {
-        displc[j] = dataPortionLengths[j - 1] + displc[j - 1];
-    }
-    displc[0] = 0;
     int** myDocumentPartMatrix = (int**)malloc(dataPortionLengths[rank] * sizeof(int*));
 
     /// Send actual data to everyone according to offsets calculated from the portions
     for (int i = 0; i < dataPortionLengths[rank]; i++)
         myDocumentPartMatrix[i] = (int*)malloc((dictionarySize + 1) * sizeof(int));
-
 
     /*if (rank == 0) {
         for (int m = 0; m < size; ++m) {
@@ -117,29 +103,37 @@ int main(int argc, char *argv[])
     }*/
     if (rank == 0)
     {
-        int* tmpRowPtr = documentMatrix[0];
-        tmpRowPtr += dataPortionLengths[0];
-        for (int j = 1; j < size; ++j)
+        int* tmpRowPtr = documentMatrix[0 + dataPortionLengths[0]];
+        //tmpRowPtr += dataPortionLengths[0];
+        for (int j = 1, counter = dataPortionLengths[0]; j < size; ++j) // For each other noed
         {
-            for (int k = 0; k < dataPortionLengths[j]; ++k)
+            printf("MASTER sending with ID%d\n", tmpRowPtr[0]);
+            for (int k = 0; k < dataPortionLengths[j]; ++k)             // Send each row
             {
                 printf("%d:%d\n", j, k);
                 MPI_Send(tmpRowPtr, (dictionarySize + 1), MPI_INT, j, TAG1,
                          MPI_COMM_WORLD);
-                tmpRowPtr++;
+                counter += dataPortionLengths[j];
+                if(counter < lineCount)
+                    tmpRowPtr = documentMatrix[0 + counter];
             }
         }
     }
     else
     {
-        for (int j = 0; j < dataPortionLengths[rank]; ++j)
+        for (int j = 0; j < dataPortionLengths[rank]; ++j)              // Receive each row
         {
             MPI_Recv(myDocumentPartMatrix[j], (dictionarySize + 1)
-                    , MPI_INT, 1, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    , MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            for (int k = 0; k < dictionarySize + 1; ++k) {
+                printf("%d\t", myDocumentPartMatrix[j][k]);
+            }
+            printf("\n");
         }
+
     }
 
-
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /// Cleanup
     if (rank == 0)
@@ -155,8 +149,8 @@ int main(int argc, char *argv[])
     }
     free(dataPortionLengths);
     free(myDocumentPartMatrix);
-    free(displc);
 
+    MPI_Finalize();
     return 0;
 
 }
