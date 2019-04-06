@@ -28,12 +28,22 @@ struct pack{
     int id;
     int val;
 };
-struct pack* packArrays(int* similarities, int** ids, int size)
+struct pack* packIDsAndVals(int *vals, int *ids, int size)
+{
+    struct pack* resultArray = malloc(sizeof(struct pack) * size);
+    for (int i = 0; i < size; ++i)
+    {
+        resultArray[i].id = ids[i];
+        resultArray[i].val = vals[i];
+    }
+    return resultArray;
+}
+struct pack* packSimilaritiesAndIds(int **similarities, int **ids, int size)
 {
     struct pack* resultArray = malloc(sizeof(struct pack) * size);
     for (int i = 0; i < size; ++i) {
         resultArray[i].id = ids[i][0];
-        resultArray[i].val = similarities[i];
+        resultArray[i].val = *similarities[i];
     }
     return resultArray;
 }
@@ -49,12 +59,25 @@ int compareFunc(const void* a, const void* b)
     return ((struct pack*)a)->val > ((struct pack*)b)->val;
 }
 void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
-                     int length,
+                     int length, int k,
                      int** myIds, int** myVals)
 {
-    struct pack* packedArray = packArrays(similarities, myDocumentPartMatrix, length);
+    struct pack* packedArray = packSimilaritiesAndIds(&similarities, myDocumentPartMatrix, length);
     qsort(packedArray, length, sizeof(struct pack), compareFunc);
     unpackArrays(packedArray, myIds, myVals, length);
+    /// Truncate
+    int* myIdsTruncated = malloc(k * sizeof(int));
+    int* myValsTruncated = malloc(k * sizeof(int));
+    for (int i = 0; i < k; ++i) {
+        myIdsTruncated[i] = *myIds[i];
+        myValsTruncated[i] = *myVals[i];
+    }
+    int* tmpPointer = *myIds;
+    *myIds = myIdsTruncated;
+    free(tmpPointer);
+    tmpPointer = *myVals;
+    *myVals = myValsTruncated;
+    free(tmpPointer);
     free(packedArray);
 }
 
@@ -66,10 +89,35 @@ void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
 // myids.size == myvals.size == k
 void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int my_rank)
 {
+    // Parallel arrays
+    int* tmpValStorage = malloc(sizeof(int) * k * world_size);
+    int* tmpIDStorage = malloc(sizeof(int) * k * world_size);
+
+    MPI_Gather(myids, k, MPI_INT, tmpIDStorage, k, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(myvals, k, MPI_INT, tmpValStorage, k, MPI_INT, 0, MPI_COMM_WORLD);
+
     if (my_rank == 0) // Master
     {
-        leastk = malloc(k * sizeof(int));
+        /// DEBUG
+        for (int j = 0; j < k *world_size; ++j) {
+            printf("ID:%d VAL:%d\n", tmpIDStorage[j], tmpValStorage[j]);
+        }
+        printf("K:%d\n", k * world_size);
+        /// END DEBUG
+        struct pack* packedArray = packIDsAndVals(tmpValStorage, tmpIDStorage, k * world_size);
+        qsort(packedArray, k * world_size, sizeof(struct pack), compareFunc);
+
+        struct pack* packedArrayTruncated = malloc(sizeof(struct pack) * k);
+        for (int i = 0; i < k; ++i) {
+            packedArrayTruncated[i] = packedArray[i];
+        }
+        unpackArrays(packedArrayTruncated, &leastk, &myvals, k);
+        free(packedArray);
+        free(packedArrayTruncated);
     }
+    free(tmpValStorage);
+    free(tmpIDStorage);
+
 }
 int main(int argc, char *argv[])
 {
@@ -194,9 +242,9 @@ int main(int argc, char *argv[])
     //printf("\n");
     int* My_ids = malloc(dataPortionLengths[rank] * sizeof(int));
     int* My_vals = malloc(dataPortionLengths[rank] * sizeof(int));
-    findLocalLeastk(similarities, myDocumentPartMatrix, dataPortionLengths[rank],
+    findLocalLeastk(similarities, myDocumentPartMatrix, dataPortionLengths[rank], k,
                     &My_ids, &My_vals);
-    if (rank == 0)
+    /*if (rank == 0)
     {
         printf("here\n");
         for (int n = 0; n < dataPortionLengths[rank]; ++n)
@@ -205,7 +253,15 @@ int main(int argc, char *argv[])
         }
         printf("\n");
     }
-
+    */
+    /// Reduce at root and print results
+    kreduce(leastk, My_ids, My_vals, k, size, rank);
+    if (rank == 0)
+    {
+        for (int j = 0; j < k; ++j) {
+            printf("%d\n", leastk[j]);
+        }
+    }
 
     /// Cleanup
     if (rank == 0)
