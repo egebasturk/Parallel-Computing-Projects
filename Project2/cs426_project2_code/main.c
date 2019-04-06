@@ -13,6 +13,51 @@
 #define TAG1 1
 
 
+// Subroutine to calculate similarity of single record with the query
+int calculateSimilarity(int vals[], int query[], int dictionarySize)
+{
+    //printf("DICTIONARYSIZE%d\n", dictionarySize);
+    int sim = 0;
+    for (int i = 0; i < dictionarySize; ++i) {
+        sim += pow(vals[i],query[i]);
+        //printf("IN CALCULATE SIMILARITY i is:%d\n", i);
+    }
+    return sim;
+}
+struct pack{
+    int id;
+    int val;
+};
+struct pack* packArrays(int* similarities, int** ids, int size)
+{
+    struct pack* resultArray = malloc(sizeof(struct pack) * size);
+    for (int i = 0; i < size; ++i) {
+        resultArray[i].id = ids[i][0];
+        resultArray[i].val = similarities[i];
+    }
+    return resultArray;
+}
+void unpackArrays(struct pack* packedArray, int** idsOut, int** valsOut, int length)
+{
+    for (int i = 0; i < length; ++i) {
+        *idsOut[i] = packedArray[i].id;
+        *valsOut[i] = packedArray[i].val;
+    }
+}
+int compareFunc(const void* a, const void* b)
+{
+    return ((struct pack*)a)->val > ((struct pack*)b)->val;
+}
+void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
+                     int length,
+                     int** myIds, int** myVals)
+{
+    struct pack* packedArray = packArrays(similarities, myDocumentPartMatrix, length);
+    qsort(packedArray, length, sizeof(struct pack), compareFunc);
+    unpackArrays(packedArray, myIds, myVals, length);
+    free(packedArray);
+}
+
 // A collective comm. function
 // Only master have k ids, which correspond to least k values in ascending order
 // Myids: array keeps ids of documents of a process
@@ -26,19 +71,6 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
         leastk = malloc(k * sizeof(int));
     }
 }
-
-// Subroutine to calculate similarity of single record with the query
-int calculateSimilarity(int vals[], int query[], int dictionarySize)
-{
-    //printf("DICTIONARYSIZE%d\n", dictionarySize);
-    int sim = 0;
-    for (int i = 0; i < dictionarySize; ++i) {
-        sim += pow(vals[i],query[i]);
-        //printf("IN CALCULATE SIMILARITY i is:%d\n", i);
-    }
-    return sim;
-}
-
 int main(int argc, char *argv[])
 {
     int rank, size;
@@ -47,19 +79,21 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     /// MAster values
-    int dictionarySize = 0;
+    int dictionarySize = atoi(argv[1]);
     int lineCount = 0;
-    char *filenameInputDoc;
-    char *filenameInputQuery;
-    int **documentMatrix;
-    int *queryArray;
+    int k = atoi(argv[2]);
+    char* filenameInputDoc;
+    char* filenameInputQuery;
+    int** documentMatrix;
+    int* queryArray;
+    int* leastk;
 
     if (rank == 0)
     {
-        filenameInputDoc = argv[1];//"../documents.txt";
-        filenameInputQuery = argv[2];// "../query.txt";
-
-        documentMatrix = readDocuments(filenameInputDoc, &dictionarySize, &lineCount);
+        filenameInputDoc = argv[3];//"../documents.txt";
+        filenameInputQuery = argv[4];// "../query.txt";
+        leastk = malloc(sizeof(int) * k);
+        documentMatrix = readDocuments(filenameInputDoc, dictionarySize, &lineCount);
         queryArray = readQuery(filenameInputQuery, dictionarySize);
         int dictionarySizeWithIDPadding = dictionarySize + 1;
 
@@ -127,7 +161,6 @@ int main(int argc, char *argv[])
             //printf("MASTER sending with ID%d\n", tmpRowPtr[0]);
             for (int k = 0; k < dataPortionLengths[j]; ++k)             // Send each row
             {
-                printf("%d:%d\n", j, k);
                 MPI_Send(tmpRowPtr, (dictionarySize + 1), MPI_INT, j, TAG1,
                          MPI_COMM_WORLD);
                 counter += dataPortionLengths[j];
@@ -150,14 +183,29 @@ int main(int argc, char *argv[])
 
     }
     /// At this point, every node has its part
+    /// Calculate similarities and find least k locally
     int* similarities = malloc(dataPortionLengths[rank] * sizeof(int));
     for (int m = 0; m < dataPortionLengths[rank]; ++m)
     {
         similarities[m] = calculateSimilarity(&myDocumentPartMatrix[m][1],
                 queryArray, dictionarySize);
-        printf("%d\t", similarities[m]);
+        //printf("%d\t", similarities[m]);
     }
-    printf("\n");
+    //printf("\n");
+    int* My_ids = malloc(dataPortionLengths[rank] * sizeof(int));
+    int* My_vals = malloc(dataPortionLengths[rank] * sizeof(int));
+    findLocalLeastk(similarities, myDocumentPartMatrix, dataPortionLengths[rank],
+                    &My_ids, &My_vals);
+    if (rank == 0)
+    {
+        printf("here\n");
+        for (int n = 0; n < dataPortionLengths[rank]; ++n)
+        {
+            printf("%d\t", My_ids[n]);
+        }
+        printf("\n");
+    }
+
 
     /// Cleanup
     if (rank == 0)
@@ -166,6 +214,7 @@ int main(int argc, char *argv[])
             free(documentMatrix[i]);
         }
         free(documentMatrix);
+        free(leastk);
     } else {
         for (int i = 0; i < dataPortionLengths[rank]; ++i) {
             free(myDocumentPartMatrix[i]);
@@ -175,6 +224,8 @@ int main(int argc, char *argv[])
     free(queryArray);
     free(dataPortionLengths);
     free(similarities);
+    free(My_ids);
+    free(My_vals);
     MPI_Finalize();
     return 0;
 

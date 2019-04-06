@@ -4,11 +4,6 @@
 #include <mpi.h>
 #include <math.h>
 #define INVALID_VALUE -666
-
-int** readDocuments(char* inputDocFilename, int* dictionarySizeReturn, int* lineCountReturn);
-int* readQuery(char* inputQueryFilename, int dictionarySize);
-
-
 // DEBUG
 #define DEBUG_PRINT_INPUT \
     for (int i = 0; i < lineCount; ++i) { \
@@ -22,3 +17,7 @@ int* readQuery(char* inputQueryFilename, int dictionarySize);
         printf("%d\t", queryArray[k]); \
     } \
     printf("\n");
+
+
+int** readDocuments(char* inputDocFilename, int dictionarySize, int* lineCountReturn);
+int* readQuery(char* inputQueryFilename, int dictionarySize);
