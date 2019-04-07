@@ -8,10 +8,7 @@
  * D is the dictionary size. D:int
  * */
 
-#include <stdio.h>
 #include "utils.h"
-#define TAG1 1
-
 
 // Subroutine to calculate similarity of single record with the query
 int calculateSimilarity(int vals[], int query[], int dictionarySize)
@@ -124,10 +121,14 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
 int main(int argc, char *argv[])
 {
     int rank, size;
+    double start_seq, end_seq, start_par, end_par, start_total, end_total;
+
     MPI_Init(&argc, &argv);
+    start_total = MPI_Wtime();
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    start_seq = MPI_Wtime();
     /// MAster values
     int dictionarySize = atoi(argv[1]);
     int lineCount = 0;
@@ -148,7 +149,7 @@ int main(int argc, char *argv[])
         int dictionarySizeWithIDPadding = dictionarySize + 1;
 
         // DEBUG PRINT
-        DEBUG_PRINT_INPUT
+        //DEBUG_PRINT_INPUT
         // END DEBUG PRINT
         /// Send dictionary size and line count to others
         for (int l = 1; l < size; ++l) {
@@ -224,6 +225,8 @@ int main(int argc, char *argv[])
         }
 
     }
+    end_seq = MPI_Wtime();
+    start_par = MPI_Wtime();
     /*if (rank != 0)
     {
         for (int l = 0; l < dataPortionLengths[rank]; ++l) {
@@ -254,9 +257,13 @@ int main(int argc, char *argv[])
                     &My_ids, &My_vals);
     /// Reduce at root and print results
     kreduce(leastk, My_ids, My_vals, k, size, rank);
-
+    end_par = MPI_Wtime();
+    end_total = MPI_Wtime();
     if (rank == 0)
     {
+        printf("Sequential Part: %f\n", end_seq - start_seq);
+        printf("Parallel Part: %f\n", end_par - start_par);
+        printf("Total Time: %f\n", end_total - start_total);
         printf("Least k = %d ids:\n", k);
         for (int j = 0; j < k; ++j) {
             printf("%d\n", leastk[j]);

@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <math.h>
 #define INVALID_VALUE -666
+#define TAG1 1
 // DEBUG
 #define DEBUG_PRINT_INPUT \
     for (int i = 0; i < lineCount; ++i) { \
