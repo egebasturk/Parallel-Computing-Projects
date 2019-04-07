@@ -10,7 +10,7 @@
 
 #include "utils.h"
 
-// Subroutine to calculate similarity of single record with the query
+/// Subroutine to calculate similarity of single record with the given query
 int calculateSimilarity(int vals[], int query[], int dictionarySize)
 {
     int sim = 0;
@@ -19,6 +19,8 @@ int calculateSimilarity(int vals[], int query[], int dictionarySize)
     }
     return sim;
 }
+/// Pack related functions
+/// Pack mechanism helps sorting two parallel arrays with library function
 struct pack{
     int id;
     int val;
@@ -54,6 +56,11 @@ int compareFunc(const void* a, const void* b)
 {
     return ((struct pack*)a)->val > ((struct pack*)b)->val;
 }
+/// End of pack related functions
+
+/// findLocalLeastk is called by each process to calculate local least k's
+/// They will be merged later by k reduce
+/// The ideas is: Pack -> Sort -> Truncate -> Unpack & clean excess
 void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
                      int length, int k,
                      int** myIds, int** myVals)
@@ -80,18 +87,27 @@ void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
     free(packedArray);
 }
 
-// A collective comm. function
-// Only master have k ids, which correspond to least k values in ascending order
-// Myids: array keeps ids of documents of a process
-// myvals: keep similarity val.s of the documents
-// k: how many elements will be selected
-// myids.size == myvals.size == k
+/// A collective comm. function
+/// Only master have k ids, which correspond to least k values in ascending order
+/// Myids: array keeps ids of documents of a process
+/// myvals: keep similarity val.s of the documents
+/// k: how many elements will be selected
+/// myids.size == myvals.size == k
+
+/// Only the root uses least k, and initializes tmpValStorage & tmpIDStorage
+/// All call MPI_Gather to gather their parts at the root
+/// Root follows the same procedure as the findLocalLeastk
+/// Pack -> Sort -> Truncate -> Unpack & clean excess
 void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int my_rank)
 {
     // Parallel arrays
-    int* tmpValStorage = malloc(sizeof(int) * k * world_size);
-    int* tmpIDStorage = malloc(sizeof(int) * k * world_size);
-
+    int* tmpValStorage;
+    int* tmpIDStorage;
+    if(my_rank == 0)
+    {
+        tmpIDStorage = malloc(sizeof(int) * k * world_size);
+        tmpValStorage = malloc(sizeof(int) * k * world_size);
+    }
     MPI_Gather(myids, k, MPI_INT, tmpIDStorage, k, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Gather(myvals, k, MPI_INT, tmpValStorage, k, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -107,16 +123,16 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
         qsort(packedArray, k * world_size, sizeof(struct pack), compareFunc);
 
         struct pack* packedArrayTruncated = malloc(sizeof(struct pack) * k);
-        for (int i = 0; i < k; ++i) {
+        for (int i = 0; i < k; ++i)
+        {
             packedArrayTruncated[i] = packedArray[i];
         }
         unpackArrays(packedArrayTruncated, &leastk, &myvals, k);
         free(packedArray);
         free(packedArrayTruncated);
+        free(tmpValStorage);
+        free(tmpIDStorage);
     }
-    free(tmpValStorage);
-    free(tmpIDStorage);
-
 }
 int main(int argc, char *argv[])
 {
@@ -146,11 +162,13 @@ int main(int argc, char *argv[])
         leastk = malloc(sizeof(int) * k);
         documentMatrix = readDocuments(filenameInputDoc, dictionarySize, &lineCount);
         queryArray = readQuery(filenameInputQuery, dictionarySize);
-        int dictionarySizeWithIDPadding = dictionarySize + 1;
+        int dictionarySizeWithIDPadding = dictionarySize + 1; // Needed for debug, don't delete
 
         // DEBUG PRINT
         //DEBUG_PRINT_INPUT
         // END DEBUG PRINT
+        end_seq = MPI_Wtime();
+        start_par = MPI_Wtime();
         /// Send dictionary size and line count to others
         for (int l = 1; l < size; ++l) {
             MPI_Send(&dictionarySize, 1, MPI_INT, l, TAG1, MPI_COMM_WORLD);
@@ -158,7 +176,7 @@ int main(int argc, char *argv[])
             MPI_Send(queryArray, dictionarySize, MPI_INT, l, TAG1, MPI_COMM_WORLD);
         }
     }
-    else /// Get dicsize and line count from the root
+    else /// Get dictionary size and line count from the root
     {
         MPI_Recv(&dictionarySize, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&lineCount, 1, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -166,12 +184,11 @@ int main(int argc, char *argv[])
         MPI_Recv(queryArray, dictionarySize, MPI_INT, 0, TAG1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-
+    // Data portion lengths is the array stores row counts of all processes
+    // Every node calculates it, redundant but simple and don't need to communicate
     int *dataPortionLengths = (int *) malloc(sizeof(int) * size);
     /// Following partitions line counts equally, then it distributes remaining in RR
     /// Data will be sent according to these values later
-    /// Rather simple computation, everyone can compute same thing for themselves
-
     int remainingElementCount = lineCount;
     for (int i = 0; i < size; i++) {
         dataPortionLengths[i] = dictionarySize / size;
@@ -196,16 +213,11 @@ int main(int argc, char *argv[])
         myDocumentPartMatrix = documentMatrix;
     }
 
-    /*if (rank == 0) {
-        for (int m = 0; m < size; ++m) {
-            printf("%d\t", dataPortionLengths[m]);
-        }
-        printf("\n");
-    }*/
+    /// Basically Manual Broadcast
     if (rank == 0)
     {
         int** tmpRowPtr = documentMatrix + dataPortionLengths[0];
-        for (int j = 1, counter = dataPortionLengths[0]; j < size; ++j) // For each other noed
+        for (int j = 1, counter = dataPortionLengths[0]; j < size; ++j) // For each other node
         {
             for (int k = 0; k < dataPortionLengths[j]; ++k)             // Send each row
             {
@@ -225,17 +237,6 @@ int main(int argc, char *argv[])
         }
 
     }
-    end_seq = MPI_Wtime();
-    start_par = MPI_Wtime();
-    /*if (rank != 0)
-    {
-        for (int l = 0; l < dataPortionLengths[rank]; ++l) {
-            for (int j = 0; j < dictionarySize; ++j) {
-                printf("%d\t", myDocumentPartMatrix[l][j]);
-            }
-            printf("\n");
-        }
-    }*/
     /// At this point, every node has its part
     /// Calculate similarities and find least k locally
     int* similarities = malloc(dataPortionLengths[rank] * sizeof(int));
@@ -246,24 +247,22 @@ int main(int argc, char *argv[])
     }
     int* My_ids = malloc(dataPortionLengths[rank] * sizeof(int));
     int* My_vals = malloc(dataPortionLengths[rank] * sizeof(int));
-    /*for (int n = 0; n < dataPortionLengths[rank]; ++n) {
-        printf("%d\t", similarities[n]);
-    }
-    printf("\n");*/
+
     if (k > dataPortionLengths[rank])
         k = dataPortionLengths[rank];
-    MPI_Barrier(MPI_COMM_WORLD);
+
     findLocalLeastk(similarities, myDocumentPartMatrix, dataPortionLengths[rank], k,
                     &My_ids, &My_vals);
-    /// Reduce at root and print results
+    /// findLocalLeastk finds local least
+    /// Reduce them at root and print results
     kreduce(leastk, My_ids, My_vals, k, size, rank);
     end_par = MPI_Wtime();
     end_total = MPI_Wtime();
     if (rank == 0)
     {
-        printf("Sequential Part: %f\n", end_seq - start_seq);
-        printf("Parallel Part: %f\n", end_par - start_par);
-        printf("Total Time: %f\n", end_total - start_total);
+        printf("Sequential Part: %f ms\n", (end_seq - start_seq) * 1000);
+        printf("Parallel Part: %f ms\n", (end_par - start_par) * 1000);
+        printf("Total Time: %f ms\n", (end_total - start_total) * 1000);
         printf("Least k = %d ids:\n", k);
         for (int j = 0; j < k; ++j) {
             printf("%d\n", leastk[j]);
