@@ -113,12 +113,6 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
 
     if (my_rank == 0) // Master
     {
-        /// DEBUG
-        /*for (int j = 0; j < k *world_size; ++j) {
-            printf("ID:%d VAL:%d\n", tmpIDStorage[j], tmpValStorage[j]);
-        }*/
-        //printf("K:%d\n", k * world_size);
-        /// END DEBUG
         struct pack* packedArray = packIDsAndVals(tmpValStorage, tmpIDStorage, k * world_size);
         qsort(packedArray, k * world_size, sizeof(struct pack), compareFunc);
 
@@ -145,7 +139,7 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     start_seq = MPI_Wtime();
-    /// MAster values
+    /// Master values
     int dictionarySize = atoi(argv[1]);
     int lineCount = 0;
     int k = atoi(argv[2]);
@@ -290,5 +284,4 @@ int main(int argc, char *argv[])
     free(My_vals);
     MPI_Finalize();
     return 0;
-
 }
