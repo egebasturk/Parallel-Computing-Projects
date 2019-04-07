@@ -38,20 +38,21 @@ struct pack* packIDsAndVals(int *vals, int *ids, int size)
     }
     return resultArray;
 }
-struct pack* packSimilaritiesAndIds(int **similarities, int **ids, int size)
+struct pack* packSimilaritiesAndIds(const int *similarities, int **ids, int size
+)//,struct pack** resultArray)
 {
-    struct pack* resultArray = malloc(sizeof(struct pack) * size);
+    struct pack* resultArray = (struct pack*)malloc(sizeof(struct pack) * size);
     for (int i = 0; i < size; ++i) {
         resultArray[i].id = ids[i][0];
-        resultArray[i].val = *similarities[i];
+        resultArray[i].val = similarities[i];
     }
     return resultArray;
 }
 void unpackArrays(struct pack* packedArray, int** idsOut, int** valsOut, int length)
 {
     for (int i = 0; i < length; ++i) {
-        *idsOut[i] = packedArray[i].id;
-        *valsOut[i] = packedArray[i].val;
+        (*idsOut)[i] = packedArray[i].id;
+        (*valsOut)[i] = packedArray[i].val;
     }
 }
 int compareFunc(const void* a, const void* b)
@@ -62,15 +63,21 @@ void findLocalLeastk(int* similarities, int** myDocumentPartMatrix,
                      int length, int k,
                      int** myIds, int** myVals)
 {
-    struct pack* packedArray = packSimilaritiesAndIds(&similarities, myDocumentPartMatrix, length);
+    /*for (int j = 0; j < length; ++j) {
+        printf("%d\t", similarities[j]);
+    }*/
+    struct pack* packedArray;// = (struct pack*)malloc(sizeof(struct pack) * length);
+    packedArray = packSimilaritiesAndIds(similarities, myDocumentPartMatrix, length);
+
     qsort(packedArray, length, sizeof(struct pack), compareFunc);
     unpackArrays(packedArray, myIds, myVals, length);
     /// Truncate
     int* myIdsTruncated = malloc(k * sizeof(int));
     int* myValsTruncated = malloc(k * sizeof(int));
     for (int i = 0; i < k; ++i) {
-        myIdsTruncated[i] = *myIds[i];
-        myValsTruncated[i] = *myVals[i];
+        //printf("%d\t", k);
+        myIdsTruncated[i] = (*myIds)[i];
+        myValsTruncated[i] = (*myVals)[i];
     }
     int* tmpPointer = *myIds;
     *myIds = myIdsTruncated;
@@ -99,10 +106,10 @@ void kreduce(int * leastk, int * myids, int * myvals, int k, int world_size, int
     if (my_rank == 0) // Master
     {
         /// DEBUG
-        for (int j = 0; j < k *world_size; ++j) {
+        /*for (int j = 0; j < k *world_size; ++j) {
             printf("ID:%d VAL:%d\n", tmpIDStorage[j], tmpValStorage[j]);
-        }
-        printf("K:%d\n", k * world_size);
+        }*/
+        //printf("K:%d\n", k * world_size);
         /// END DEBUG
         struct pack* packedArray = packIDsAndVals(tmpValStorage, tmpIDStorage, k * world_size);
         qsort(packedArray, k * world_size, sizeof(struct pack), compareFunc);
@@ -181,10 +188,10 @@ int main(int argc, char *argv[])
         i++;
     }
     int** myDocumentPartMatrix;
+    //printf("ID %d PORTION LENGTH:%d\n", rank, dataPortionLengths[rank]);
     if (rank != 0)
     {
         myDocumentPartMatrix = (int **) malloc(dataPortionLengths[rank] * sizeof(int *));
-
         /// Send actual data to everyone according to offsets calculated from the portions
         for (int i = 0; i < dataPortionLengths[rank]; i++)
             myDocumentPartMatrix[i] = (int *) malloc((dictionarySize + 1) * sizeof(int));
@@ -202,18 +209,16 @@ int main(int argc, char *argv[])
     }*/
     if (rank == 0)
     {
-        int* tmpRowPtr = documentMatrix[0 + dataPortionLengths[0]];
+        int** tmpRowPtr = documentMatrix + dataPortionLengths[0];
         //tmpRowPtr += dataPortionLengths[0];
         for (int j = 1, counter = dataPortionLengths[0]; j < size; ++j) // For each other noed
         {
-            //printf("MASTER sending with ID%d\n", tmpRowPtr[0]);
             for (int k = 0; k < dataPortionLengths[j]; ++k)             // Send each row
             {
-                MPI_Send(tmpRowPtr, (dictionarySize + 1), MPI_INT, j, TAG1,
+                MPI_Send(*tmpRowPtr, (dictionarySize + 1), MPI_INT, j, TAG1,
                          MPI_COMM_WORLD);
-                counter += dataPortionLengths[j];
-                if(counter < lineCount)
-                    tmpRowPtr = documentMatrix[0 + counter];
+
+                tmpRowPtr++;
             }
         }
     }
@@ -230,6 +235,15 @@ int main(int argc, char *argv[])
         }
 
     }
+    /*if (rank != 0)
+    {
+        for (int l = 0; l < dataPortionLengths[rank]; ++l) {
+            for (int j = 0; j < dictionarySize; ++j) {
+                printf("%d\t", myDocumentPartMatrix[l][j]);
+            }
+            printf("\n");
+        }
+    }*/
     /// At this point, every node has its part
     /// Calculate similarities and find least k locally
     int* similarities = malloc(dataPortionLengths[rank] * sizeof(int));
@@ -242,6 +256,11 @@ int main(int argc, char *argv[])
     //printf("\n");
     int* My_ids = malloc(dataPortionLengths[rank] * sizeof(int));
     int* My_vals = malloc(dataPortionLengths[rank] * sizeof(int));
+    /*for (int n = 0; n < dataPortionLengths[rank]; ++n) {
+        printf("%d\t", similarities[n]);
+    }
+    printf("\n");*/
+    MPI_Barrier(MPI_COMM_WORLD);
     findLocalLeastk(similarities, myDocumentPartMatrix, dataPortionLengths[rank], k,
                     &My_ids, &My_vals);
     /*if (rank == 0)
