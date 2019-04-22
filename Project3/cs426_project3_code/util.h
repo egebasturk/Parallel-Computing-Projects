@@ -21,3 +21,8 @@ void dealloc_2d_matrix(int ** a, int r, int c);
 *		note that this function can not read pgm files, only use with given dataset
 **/ 
 int ** read_pgm_file(char * file_name, int h, int w);
+
+// My helpers
+#define IMAGE_HEIGHT 180
+#define IMAGE_WIDTH 200
+#define FILTER_N 3
