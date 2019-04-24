@@ -71,12 +71,32 @@ int find_closest(int ***training_set, int num_persons, int num_training, int siz
 }
 int main()
 {
-    int* histogram = malloc((IMAGE_HEIGHT - 2) * (IMAGE_WIDTH - 2) * sizeof(int));
-    int** image = read_pgm_file("../images/1.1.txt", IMAGE_HEIGHT, IMAGE_WIDTH);
+    int k = 10, people_count = 18, sample_count_per_person = 20;
+    char* buff = malloc(32 * sizeof(char));
+    /// Create Arrays for each person, 18 arrays in this case
+    u_int8_t*** histogram_array = malloc(people_count * sizeof(u_int8_t**));
+    /// Create histograms inside portion for each person, 20 for each person
+    for (int i = 0; i < people_count; ++i)
+    {
+        histogram_array[i] = malloc(sample_count_per_person * (sizeof(u_int8_t*)));
+        for (int j = 0; j < sample_count_per_person; ++j)
+        {
+            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
 
-    create_histogram(histogram, image, IMAGE_HEIGHT, IMAGE_WIDTH);
+            histogram_array[i][j] = malloc(255 * (sizeof(u_int8_t)));
+            create_histogram((int*)histogram_array[i][j], image, IMAGE_HEIGHT, IMAGE_WIDTH);//Dangerous cast
 
-    dealloc_2d_matrix(image, IMAGE_HEIGHT, IMAGE_WIDTH);
-    free(histogram);
+            dealloc_2d_matrix(image, IMAGE_HEIGHT, IMAGE_WIDTH);
+        }
+    }
+    for (int l = 0; l < people_count; ++l) {
+        for (int i = 0; i < sample_count_per_person; ++i) {
+            free(histogram_array[l][i]);
+        }
+        free(histogram_array[l]);
+    }
+    free(histogram_array);
+    free(buff);
     return 0;
 }
