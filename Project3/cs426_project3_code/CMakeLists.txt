@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(cs426_project3_code C)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize-recover=address -O0")
 
 add_executable(cs426_project3_code lbp_seq.c util.c util.h)
 

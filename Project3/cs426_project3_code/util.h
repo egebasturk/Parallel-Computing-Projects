@@ -26,3 +26,4 @@ int ** read_pgm_file(char * file_name, int h, int w);
 #define IMAGE_HEIGHT 180
 #define IMAGE_WIDTH 200
 #define FILTER_N 3
+u_int8_t** alloc_2d_matrix_unsigned(int r, int c);

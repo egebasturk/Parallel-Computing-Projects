@@ -50,3 +50,23 @@ int ** read_pgm_file(char * file_name, int h, int w)
     fclose(file);
     return data;
 }
+
+/// My Helpers
+u_int8_t** alloc_2d_matrix_unsigned(int r, int c)
+{
+    u_int8_t ** a;
+    int i;
+    a = (u_int8_t **)malloc(sizeof(u_int8_t *) * r);
+    if (a == NULL) {
+        perror("memory allocation failure");
+        exit(0);
+    }
+    for (i = 0; i < r; ++i) {
+        a[i] = (u_int8_t *)malloc(sizeof(u_int8_t) * c);
+        if (a[i] == NULL) {
+            perror("memory allocation failure");
+            exit(EXIT_FAILURE);
+        }
+    }
+    return a;
+}
