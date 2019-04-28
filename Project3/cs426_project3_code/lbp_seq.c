@@ -4,6 +4,9 @@
 #include "util.h"
 #include "math.h"
 #define INVALID_NUM_INIT_VALUE (-666)
+#define DEBUG_IMG_WRITE 0
+#define DEBUG_LBP_WRITE 0
+
 ///
 u_int8_t apply_filter_on_pixel(int** img, int row, int col)
 {
@@ -36,44 +39,47 @@ u_int8_t apply_filter_on_pixel(int** img, int row, int col)
 int flag = 15;
 void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
 {
-    int** img_lbp = alloc_2d_matrix(num_rows, num_cols);
-    if (img_lbp == NULL)
-        printf("NULL Pointer\n");
+    int** img_lbp;
+    if (DEBUG_LBP_WRITE) {
+        img_lbp = alloc_2d_matrix(num_rows, num_cols);
+        if (img_lbp == NULL)
+            printf("NULL Pointer\n");
+    }
     for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
-            img_lbp[i][j] = tmp;
+            if (DEBUG_LBP_WRITE)
+                img_lbp[i][j] = tmp;
             ((int*)hist)[tmp]++;
         }
     }
-    // Pixels will fit, ignore warning
-    for (int k = 0; k < IMAGE_HEIGHT; ++k) {
-        img_lbp[k][0] =0;// img[k][0];
-        img_lbp[k][IMAGE_WIDTH - 1] =0;// img[k][IMAGE_WIDTH - 1];
-        //((int*)hist)[0] += 2;
-    }
-    for (int l = 0; l < IMAGE_WIDTH; ++l) {
-        img_lbp[0][l] =0;// img[0][l];
-        img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
-        //((int*)hist)[0] += 2;
-    }
-    if (flag == 15)
-    {
-        FILE* fptr;
-        if (fptr = fopen("mat.out", "w"))
-        {
-            for (int i = 0; i < IMAGE_HEIGHT; ++i) {
-                for (int j = 0; j < IMAGE_WIDTH; ++j) {
-                    fprintf(fptr, "%d ", img_lbp[i][j]);
+    if (DEBUG_LBP_WRITE) {
+        // Pixels will fit, ignore warning
+        for (int k = 0; k < IMAGE_HEIGHT; ++k) {
+            img_lbp[k][0] = 0;// img[k][0];
+            img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
+            //((int*)hist)[0] += 2;
+        }
+        for (int l = 0; l < IMAGE_WIDTH; ++l) {
+            img_lbp[0][l] = 0;// img[0][l];
+            img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
+            //((int*)hist)[0] += 2;
+        }
+        if (DEBUG_IMG_WRITE & flag == 15) {
+            FILE *fptr;
+            if (fptr = fopen("mat.out", "w")) {
+                for (int i = 0; i < IMAGE_HEIGHT; ++i) {
+                    for (int j = 0; j < IMAGE_WIDTH; ++j) {
+                        fprintf(fptr, "%d ", img_lbp[i][j]);
+                    }
+                    fprintf(fptr, "\n");
                 }
-                fprintf(fptr, "\n");
-            }
-        } else
-            printf("ADGFXNCH\n");
-        flag = 1;
+            } else
+                printf("ADGFXNCH\n");
+            flag = 1;
+        }
+        dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
     }
-
-    dealloc_2d_matrix((int**)img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
 }
 
 /// Finds the distance between two vectors
@@ -155,7 +161,8 @@ int main(int argc, char* argv[])
         }
     }
     /// Print all results
-    printf("Accuracy: %d correct answers for %d tests\n", correct_count, incorrect_count);
+    printf("Accuracy: %d correct answers for %d tests\n", correct_count,
+           people_count * sample_count_per_person - k * people_count);
 
 
     /// Cleanup
