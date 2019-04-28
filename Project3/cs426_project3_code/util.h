@@ -23,6 +23,9 @@ void dealloc_2d_matrix(int ** a, int r, int c);
 int ** read_pgm_file(char * file_name, int h, int w);
 
 // My helpers
+#include <limits.h>
+#include "omp.h"
+#include "math.h"
 #define IMAGE_HEIGHT 200
 #define IMAGE_WIDTH 180
 #define FILTER_N 3

@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <limits.h>
 #include "util.h"
+
 #define INVALID_NUM_INIT_VALUE (-666)
 #define DEBUG_IMG_WRITE 0
 #define DEBUG_LBP_WRITE 0
