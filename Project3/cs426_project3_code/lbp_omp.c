@@ -130,42 +130,51 @@ int main(int argc, char* argv[])
 {
     double start = GET_TIME;
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
-    char* buff = malloc(32 * sizeof(char));
+    //char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
 
     /// Create Arrays for each person, 18 arrays in this case
     int*** histogram_array = malloc(people_count * sizeof(int**));
     /// Create histograms inside portion for each person, 20 for each person
 
+    int j = 0;
+    int **image;
+    char buff[32];
+    /*
     #if DEBUG_OPT_MAIN
-    #pragma omp for
+    #pragma omp parallel for
     #endif
     for (int i = 0; i < people_count; ++i) {
         histogram_array[i] = malloc(sample_count_per_person * sizeof(int *));
         original_images[i] = malloc(sample_count_per_person * sizeof(int **));
-    }
-    #if DEBUG_OPT_MAIN
-    #pragma omp for// collapse(2)
-    #endif
-    for (int i = 0; i < people_count; ++i) {
         for (int j = 0; j < sample_count_per_person; ++j) {
-            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
-            int **image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
-            original_images[i][j] = image;
+            histogram_array[i][j] = calloc(256, sizeof(int));
         }
     }
     #if DEBUG_OPT_MAIN
-    //#pragma omp for// collapse(2)
+    #pragma omp parallel for private(j, buff, image) shared(original_images)// collapse(2)
+    #endif
+    for (int i = 0; i < people_count; ++i) {
+        for (j = 0; j < sample_count_per_person; ++j) {
+            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
+            original_images[i][j] = image;
+            //printf("%d\n", omp_get_num_threads());
+        }
+    }
+    */
+    #if DEBUG_OPT_MAIN
+    #pragma omp parallel for private(j, buff, image) shared(original_images)// collapse(2)
     #endif
     for (int i = 0; i < people_count; ++i)
     {
-        //histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
-        //original_images[i] = malloc(sample_count_per_person * sizeof(int**));
+        histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
+        original_images[i] = malloc(sample_count_per_person * sizeof(int**));
         for (int j = 0; j < sample_count_per_person; ++j)
         {
-            //sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
-            //int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
-            //original_images[i][j] = image;
+            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
+            original_images[i][j] = image;
 
             histogram_array[i][j] = calloc(256, sizeof(int));
             create_histogram((int*)histogram_array[i][j], original_images[i][j], IMAGE_HEIGHT, IMAGE_WIDTH);//Dangerous cast
@@ -218,7 +227,7 @@ int main(int argc, char* argv[])
     }
     free(histogram_array);
     free(original_images);
-    free(buff);
+    //free(buff);
     double end = GET_TIME;
     printf("Parallel Time: %lf\n", end - start);
     return 0;

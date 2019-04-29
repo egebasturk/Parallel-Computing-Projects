@@ -37,7 +37,7 @@ int ** read_pgm_file(char * file_name, int h, int w);
 #define DEBUG_IMG_WRITE 0
 #define DEBUG_LBP_WRITE 0
 // Parallel flags. Set 1 to enable existing parallelization for the section
-#define DEBUG_OPT_HIST 0
+#define DEBUG_OPT_HIST 1
 #define DEBUG_OPT_MAIN 1
 #define DEBUG_OPT_DIST 0
 #define DEBUG_OPT_TEST 1
