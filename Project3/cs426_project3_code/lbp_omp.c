@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include "util.h"
-
 #define INVALID_NUM_INIT_VALUE (-666)
-#define DEBUG_IMG_WRITE 0
-#define DEBUG_LBP_WRITE 0
 #define GET_TIME omp_get_wtime()
 
 /// Apply filter on single pixel location
@@ -39,46 +36,54 @@ int flag = 15;
 void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
 {
     int** img_lbp;
-    if (DEBUG_LBP_WRITE) {
-        img_lbp = alloc_2d_matrix(num_rows, num_cols);
-        if (img_lbp == NULL)
-            printf("NULL Pointer\n");
-    }
+    //if (DEBUG_LBP_WRITE) {
+    #ifdef DEBUG_LBP_WRITE
+    img_lbp = alloc_2d_matrix(num_rows, num_cols);
+    printf("PARALLEL_DEBUGDEBUGDEBUGDEBUG\n");
+    if (img_lbp == NULL)
+        printf("NULL Pointer\n");
+    #endif
+    //}
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
-            if (DEBUG_LBP_WRITE)
+            //if (DEBUG_LBP_WRITE)
+            #ifdef DEBUG_LBP_WRITE
                 img_lbp[i][j] = tmp;
+            #endif
             ((int*)hist)[tmp]++;
         }
     }
-    if (DEBUG_LBP_WRITE) {
-        // Pixels will fit, ignore warning
-        for (int k = 0; k < IMAGE_HEIGHT; ++k) {
-            img_lbp[k][0] = 0;// img[k][0];
-            img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
-            //((int*)hist)[0] += 2;
-        }
-        for (int l = 0; l < IMAGE_WIDTH; ++l) {
-            img_lbp[0][l] = 0;// img[0][l];
-            img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
-            //((int*)hist)[0] += 2;
-        }
-        if (DEBUG_IMG_WRITE & flag == 15) {
-            FILE *fptr;
-            if (fptr = fopen("mat.out", "w")) {
-                for (int i = 0; i < IMAGE_HEIGHT; ++i) {
-                    for (int j = 0; j < IMAGE_WIDTH; ++j) {
-                        fprintf(fptr, "%d ", img_lbp[i][j]);
-                    }
-                    fprintf(fptr, "\n");
-                }
-            } else
-                printf("ADGFXNCH\n");
-            flag = 1;
-        }
-        dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
+    //if (DEBUG_LBP_WRITE) {
+    #ifdef DEBUG_LBP_WRITE
+    // Pixels will fit, ignore warning
+    for (int k = 0; k < IMAGE_HEIGHT; ++k) {
+        img_lbp[k][0] = 0;// img[k][0];
+        img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
+        //((int*)hist)[0] += 2;
     }
+    for (int l = 0; l < IMAGE_WIDTH; ++l) {
+        img_lbp[0][l] = 0;// img[0][l];
+        img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
+        //((int*)hist)[0] += 2;
+    }
+    if (DEBUG_IMG_WRITE & flag == 15) {
+        FILE *fptr;
+        if (fptr = fopen("mat.out", "w")) {
+            for (int i = 0; i < IMAGE_HEIGHT; ++i) {
+                for (int j = 0; j < IMAGE_WIDTH; ++j) {
+                    fprintf(fptr, "%d ", img_lbp[i][j]);
+                }
+                fprintf(fptr, "\n");
+            }
+        } else
+            printf("ADGFXNCH\n");
+        flag = 1;
+    }
+    dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
+    //}
+    #endif
 }
 
 /// Finds the distance between two vectors
@@ -124,12 +129,12 @@ int main(int argc, char* argv[])
     int*** histogram_array = malloc(people_count * sizeof(int**));
     /// Create histograms inside portion for each person, 20 for each person
 
-    #pragma omp for
+    //#pragma omp for
     for (int i = 0; i < people_count; ++i) {
         histogram_array[i] = malloc(sample_count_per_person * sizeof(int *));
         original_images[i] = malloc(sample_count_per_person * sizeof(int **));
     }
-    #pragma omp for collapse(2)
+    //#pragma omp for collapse(2)
     for (int i = 0; i < people_count; ++i) {
         for (int j = 0; j < sample_count_per_person; ++j) {
             sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
@@ -138,7 +143,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    #pragma omp for collapse(2)
+    //#pragma omp for collapse(2)
     for (int i = 0; i < people_count; ++i)
     {
         //histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
