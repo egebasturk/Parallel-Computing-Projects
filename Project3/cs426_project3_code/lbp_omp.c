@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "util.h"
 #define INVALID_NUM_INIT_VALUE (-666)
 #define GET_TIME omp_get_wtime()
@@ -44,16 +43,20 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
         printf("NULL Pointer\n");
     #endif
     //}
+#pragma omp parallel for collapse(2)
     for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
+//#pragma omp parallel for
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
             //if (DEBUG_LBP_WRITE)
             #if DEBUG_LBP_WRITE
                 img_lbp[i][j] = tmp;
             #endif
+#pragma omp atomic
             ((int*)hist)[tmp]++;
         }
     }
+    hist[0] += (IMAGE_WIDTH + IMAGE_HEIGHT) * 2 - 2;
     //if (DEBUG_LBP_WRITE) {
     #if DEBUG_LBP_WRITE
     // Pixels will fit, ignore warning
@@ -133,7 +136,7 @@ int main(int argc, char* argv[])
         histogram_array[i] = malloc(sample_count_per_person * sizeof(int *));
         original_images[i] = malloc(sample_count_per_person * sizeof(int **));
     }
-    #pragma omp for collapse(2)
+    #pragma omp for// collapse(2)
     for (int i = 0; i < people_count; ++i) {
         for (int j = 0; j < sample_count_per_person; ++j) {
             sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
@@ -142,7 +145,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    #pragma omp for
+    //#pragma omp for// collapse(2)
     for (int i = 0; i < people_count; ++i)
     {
         //histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
@@ -173,8 +176,10 @@ int main(int argc, char* argv[])
             //printf("%d\n", found_person_id);
 
             if (found_person_id == i)
+#pragma omp atomic
                 correct_count++;
             else
+#pragma omp atomic
                 incorrect_count++;
 
             /// Print intermediate results as asked

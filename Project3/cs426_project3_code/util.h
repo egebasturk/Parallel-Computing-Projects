@@ -26,6 +26,8 @@ int ** read_pgm_file(char * file_name, int h, int w);
 #include <limits.h>
 #include "omp.h"
 #include "math.h"
+#include <time.h>
+#include <sys/time.h>
 #define IMAGE_HEIGHT 200
 #define IMAGE_WIDTH 180
 #define DEBUG_IMG_WRITE 0

@@ -1,10 +1,5 @@
-#include <stdio.h>
-#include <limits.h>
-#include <time.h>
 #include "util.h"
 #define INVALID_NUM_INIT_VALUE (-666)
-#define DEBUG_IMG_WRITE 0
-#define DEBUG_LBP_WRITE 0
 #define GET_TIME clock()
 ///
 u_int8_t apply_filter_on_pixel(int** img, int row, int col)
@@ -40,51 +35,56 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
 {
     int** img_lbp;
     //if (DEBUG_LBP_WRITE) {
-#if DEBUG_LBP_WRITE
-        img_lbp = alloc_2d_matrix(num_rows, num_cols);
-        if (img_lbp == NULL)
-            printf("NULL Pointer\n");
-#endif
+    #if DEBUG_LBP_WRITE
+    img_lbp = alloc_2d_matrix(num_rows, num_cols);
+    printf("PARALLEL_DEBUGDEBUGDEBUGDEBUG\n");
+    if (img_lbp == NULL)
+        printf("NULL Pointer\n");
+    #endif
     //}
+    #pragma omp parallel for collapse(2)
     for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
+        //#pragma omp parallel for
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
             //if (DEBUG_LBP_WRITE)
-#if DEBUG_LBP_WRITE
-                img_lbp[i][j] = tmp;
-#endif
+            #if DEBUG_LBP_WRITE
+            img_lbp[i][j] = tmp;
+            #endif
+            #pragma omp atomic
             ((int*)hist)[tmp]++;
         }
     }
+    hist[0] += (IMAGE_WIDTH + IMAGE_HEIGHT) * 2 - 2;
     //if (DEBUG_LBP_WRITE) {
-#if DEBUG_LBP_WRITE
-        // Pixels will fit, ignore warning
-        for (int k = 0; k < IMAGE_HEIGHT; ++k) {
-            img_lbp[k][0] = 0;// img[k][0];
-            img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
-            //((int*)hist)[0] += 2;
-        }
-        for (int l = 0; l < IMAGE_WIDTH; ++l) {
-            img_lbp[0][l] = 0;// img[0][l];
-            img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
-            //((int*)hist)[0] += 2;
-        }
-        if (DEBUG_IMG_WRITE & flag == 15) {
-            FILE *fptr;
-            if (fptr = fopen("mat.out", "w")) {
-                for (int i = 0; i < IMAGE_HEIGHT; ++i) {
-                    for (int j = 0; j < IMAGE_WIDTH; ++j) {
-                        fprintf(fptr, "%d ", img_lbp[i][j]);
-                    }
-                    fprintf(fptr, "\n");
+    #if DEBUG_LBP_WRITE
+    // Pixels will fit, ignore warning
+    for (int k = 0; k < IMAGE_HEIGHT; ++k) {
+        img_lbp[k][0] = 0;// img[k][0];
+        img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
+        //((int*)hist)[0] += 2;
+    }
+    for (int l = 0; l < IMAGE_WIDTH; ++l) {
+        img_lbp[0][l] = 0;// img[0][l];
+        img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
+        //((int*)hist)[0] += 2;
+    }
+    if (DEBUG_IMG_WRITE & flag == 15) {
+        FILE *fptr;
+        if (fptr = fopen("mat.out", "w")) {
+            for (int i = 0; i < IMAGE_HEIGHT; ++i) {
+                for (int j = 0; j < IMAGE_WIDTH; ++j) {
+                    fprintf(fptr, "%d ", img_lbp[i][j]);
                 }
-            } else
-                printf("ADGFXNCH\n");
-            flag = 1;
-        }
-        dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
+                fprintf(fptr, "\n");
+            }
+        } else
+            printf("ADGFXNCH\n");
+        flag = 1;
+    }
+    dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
     //}
-#endif
+    #endif
 }
 
 /// Finds the distance between two vectors
@@ -121,7 +121,8 @@ int find_closest(int ***training_set, int num_persons, int num_training, int siz
 }
 int main(int argc, char* argv[])
 {
-    double start = GET_TIME;
+    struct timeval start;
+    gettimeofday(&start, NULL);
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
     char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
@@ -183,7 +184,10 @@ int main(int argc, char* argv[])
     free(histogram_array);
     free(original_images);
     free(buff);
-    double end = GET_TIME;
-    printf("Sequential Time: %lf\n", (end - start) / CLOCKS_PER_SEC);
+
+    struct timeval end;
+    gettimeofday(&end, NULL);
+    printf("Sequential Time: %lf\n", (double) (end.tv_usec - start.tv_usec) / 1000000 +
+                                     (double) (end.tv_sec - start.tv_sec));
     return 0;
 }
