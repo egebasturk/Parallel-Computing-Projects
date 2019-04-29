@@ -43,8 +43,11 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
         printf("NULL Pointer\n");
     #endif
     //}
-#pragma omp parallel for collapse(2)
-    for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
+    #if DEBUG_OPT_HIST
+    #pragma omp parallel for// collapse(2)
+    #endif
+    for (int i = 1; i < IMAGE_HEIGHT - 1; ++i)
+    {
 //#pragma omp parallel for
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
@@ -52,7 +55,7 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
             #if DEBUG_LBP_WRITE
                 img_lbp[i][j] = tmp;
             #endif
-#pragma omp atomic
+            #pragma omp atomic
             ((int*)hist)[tmp]++;
         }
     }
@@ -108,6 +111,9 @@ int find_closest(int ***training_set, int num_persons, int num_training, int siz
     double min = INT_MAX;
     int min_id_i = INVALID_NUM_INIT_VALUE;
     int min_id_j;
+    #if DEBUG_OPT_DIST
+    #pragma omp parallel for collapse(2)
+    #endif
     for (int i = 0; i < num_persons; ++i) {
         for (int j = 0; j < num_training; ++j) {
             double tmp = distance(training_set[i][j], test_image, size);
@@ -131,12 +137,16 @@ int main(int argc, char* argv[])
     int*** histogram_array = malloc(people_count * sizeof(int**));
     /// Create histograms inside portion for each person, 20 for each person
 
+    #if DEBUG_OPT_MAIN
     #pragma omp for
+    #endif
     for (int i = 0; i < people_count; ++i) {
         histogram_array[i] = malloc(sample_count_per_person * sizeof(int *));
         original_images[i] = malloc(sample_count_per_person * sizeof(int **));
     }
+    #if DEBUG_OPT_MAIN
     #pragma omp for// collapse(2)
+    #endif
     for (int i = 0; i < people_count; ++i) {
         for (int j = 0; j < sample_count_per_person; ++j) {
             sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
@@ -144,8 +154,9 @@ int main(int argc, char* argv[])
             original_images[i][j] = image;
         }
     }
-
+    #if DEBUG_OPT_MAIN
     //#pragma omp for// collapse(2)
+    #endif
     for (int i = 0; i < people_count; ++i)
     {
         //histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
@@ -165,8 +176,9 @@ int main(int argc, char* argv[])
     /// Test
     int correct_count = 0;
     int incorrect_count = 0;
-
+    #if DEBUG_OPT_TEST
     #pragma omp parallel for collapse(2)
+    #endif
     for (int i = 0; i < people_count; ++i)
     {
         for (int j = k; j < sample_count_per_person; ++j)
@@ -176,10 +188,14 @@ int main(int argc, char* argv[])
             //printf("%d\n", found_person_id);
 
             if (found_person_id == i)
-#pragma omp atomic
+                #if DEBUG_OPT_TEST
+                #pragma omp atomic
+                #endif
                 correct_count++;
             else
-#pragma omp atomic
+                #if DEBUG_OPT_TEST
+                #pragma omp atomic
+                #endif
                 incorrect_count++;
 
             /// Print intermediate results as asked
