@@ -34,17 +34,13 @@ int flag = 15;
 void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
 {
     int** img_lbp;
-    //if (DEBUG_LBP_WRITE) {
     #if DEBUG_LBP_WRITE
     img_lbp = alloc_2d_matrix(num_rows, num_cols);
     printf("PARALLEL_DEBUGDEBUGDEBUGDEBUG\n");
     if (img_lbp == NULL)
         printf("NULL Pointer\n");
     #endif
-    //}
-    #pragma omp parallel for collapse(2)
     for (int i = 1; i < IMAGE_HEIGHT - 1; ++i) {
-        //#pragma omp parallel for
         for (int j = 1; j < IMAGE_WIDTH - 1; ++j) {
             int tmp = apply_filter_on_pixel(img, i, j);
             //if (DEBUG_LBP_WRITE)
@@ -56,7 +52,6 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
         }
     }
     hist[0] += (IMAGE_WIDTH + IMAGE_HEIGHT) * 2 - 2;
-    //if (DEBUG_LBP_WRITE) {
     #if DEBUG_LBP_WRITE
     // Pixels will fit, ignore warning
     for (int k = 0; k < IMAGE_HEIGHT; ++k) {
@@ -83,7 +78,6 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
         flag = 1;
     }
     dealloc_2d_matrix((int **) img_lbp, num_rows, num_cols); // Dangerous cast but should work with free
-    //}
     #endif
 }
 
