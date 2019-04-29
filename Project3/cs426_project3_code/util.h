@@ -28,7 +28,7 @@ int ** read_pgm_file(char * file_name, int h, int w);
 #include "math.h"
 #define IMAGE_HEIGHT 200
 #define IMAGE_WIDTH 180
-//#define DEBUG_IMG_WRITE 0
-//#define DEBUG_LBP_WRITE 0
+#define DEBUG_IMG_WRITE 0
+#define DEBUG_LBP_WRITE 0
 #define FILTER_N 3
 u_int8_t** alloc_2d_matrix_unsigned(int r, int c);
