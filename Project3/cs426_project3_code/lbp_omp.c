@@ -5,7 +5,7 @@
 #define DEBUG_IMG_WRITE 0
 #define DEBUG_LBP_WRITE 0
 
-///
+/// Apply filter on single pixel location
 u_int8_t apply_filter_on_pixel(int** img, int row, int col)
 {
     u_int8_t decimal = 0;
@@ -121,18 +121,34 @@ int main(int argc, char* argv[])
     /// Create Arrays for each person, 18 arrays in this case
     int*** histogram_array = malloc(people_count * sizeof(int**));
     /// Create histograms inside portion for each person, 20 for each person
+
+    #pragma omp for
+    for (int i = 0; i < people_count; ++i) {
+        histogram_array[i] = malloc(sample_count_per_person * sizeof(int *));
+        original_images[i] = malloc(sample_count_per_person * sizeof(int **));
+    }
+    #pragma omp for collapse(2)
+    for (int i = 0; i < people_count; ++i) {
+        for (int j = 0; j < sample_count_per_person; ++j) {
+            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            int **image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
+            original_images[i][j] = image;
+        }
+    }
+
+    #pragma omp for collapse(2)
     for (int i = 0; i < people_count; ++i)
     {
-        histogram_array[i] = malloc(sample_count_per_person * (sizeof(int*)));
-        original_images[i] = malloc(sample_count_per_person * sizeof(int**));
+        //histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
+        //original_images[i] = malloc(sample_count_per_person * sizeof(int**));
         for (int j = 0; j < sample_count_per_person; ++j)
         {
-            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
-            int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
-            original_images[i][j] = image;
+            //sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            //int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
+            //original_images[i][j] = image;
 
             histogram_array[i][j] = calloc(256, sizeof(int));
-            create_histogram((int*)histogram_array[i][j], image, IMAGE_HEIGHT, IMAGE_WIDTH);//Dangerous cast
+            create_histogram((int*)histogram_array[i][j], original_images[i][j], IMAGE_HEIGHT, IMAGE_WIDTH);//Dangerous cast
 
             //dealloc_2d_matrix(image, IMAGE_HEIGHT, IMAGE_WIDTH);
         }
@@ -141,6 +157,7 @@ int main(int argc, char* argv[])
     int correct_count = 0;
     int incorrect_count = 0;
 
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < people_count; ++i)
     {
         for (int j = k; j < sample_count_per_person; ++j)
