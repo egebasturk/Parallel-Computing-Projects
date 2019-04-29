@@ -4,6 +4,7 @@
 #define INVALID_NUM_INIT_VALUE (-666)
 #define DEBUG_IMG_WRITE 0
 #define DEBUG_LBP_WRITE 0
+#define GET_TIME omp_get_wtime()
 
 /// Apply filter on single pixel location
 u_int8_t apply_filter_on_pixel(int** img, int row, int col)
@@ -114,6 +115,7 @@ int find_closest(int ***training_set, int num_persons, int num_training, int siz
 }
 int main(int argc, char* argv[])
 {
+    double start = GET_TIME;
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
     char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
@@ -192,5 +194,7 @@ int main(int argc, char* argv[])
     free(histogram_array);
     free(original_images);
     free(buff);
+    double end = GET_TIME;
+    printf("Parallel Time: %lf\n", end - start);
     return 0;
 }
