@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
     free(original_images);
     free(buff);
 
-    printf("Sequential Time: %lf ms\n", (double) (end.tv_usec - start.tv_usec) +// / 1000000 +
-                                     (double) (end.tv_sec - start.tv_sec) * 1000000);
+    printf("Sequential Time: %lf ms\n", (double) (end.tv_usec - start.tv_usec) / 1000 +
+                                     (double) (end.tv_sec - start.tv_sec) * 1000);
     return 0;
 }

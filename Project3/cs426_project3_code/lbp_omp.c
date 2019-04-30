@@ -241,6 +241,6 @@ int main(int argc, char* argv[])
     free(original_images);
     //free(buff);
 
-    printf("Parallel Time: %lf ms\n", (end - start) * 1000000);
+    printf("Parallel Time: %lf ms\n", (end - start) * 1000);
     return 0;
 }
