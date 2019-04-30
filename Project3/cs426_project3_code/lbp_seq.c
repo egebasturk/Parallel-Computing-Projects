@@ -148,6 +148,8 @@ int main(int argc, char* argv[])
     int correct_count = 0;
     int incorrect_count = 0;
 
+    u_int8_t found_people_array[people_count][sample_count_per_person - k];
+    /// Calculate test results
     for (int i = 0; i < people_count; ++i)
     {
         for (int j = k; j < sample_count_per_person; ++j)
@@ -155,19 +157,26 @@ int main(int argc, char* argv[])
             sprintf(buff, "%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero so add 1
             int found_person_id = find_closest(histogram_array, people_count, k, 256, histogram_array[i][j]);
             //printf("%d\n", found_person_id);
-
+            found_people_array[i][j] = (u_int8_t)found_person_id;
             if (found_person_id == i)
                 correct_count++;
             else
                 incorrect_count++;
-
-            /// Print intermediate results as asked
-            printf("%s %d %d\n", buff, found_person_id + 1, i + 1);
         }
     }
+    struct timeval end;
+    gettimeofday(&end, NULL);
+    /*
+    for (int i = 0; i < people_count; ++i) {
+        for (int j = k; j < sample_count_per_person; ++j) {
+            /// Print intermediate results as asked
+            printf("%s %d %d\n", buff, found_people_array[i][j] + 1, i + 1);
+        }
+    }*/
     /// Print all results
     printf("Accuracy: %d correct answers for %d tests\n", correct_count,
            people_count * sample_count_per_person - k * people_count);
+
 
 
     /// Cleanup
@@ -183,9 +192,7 @@ int main(int argc, char* argv[])
     free(original_images);
     free(buff);
 
-    struct timeval end;
-    gettimeofday(&end, NULL);
-    printf("Sequential Time: %lf\n", (double) (end.tv_usec - start.tv_usec) / 1000000 +
-                                     (double) (end.tv_sec - start.tv_sec));
+    printf("Sequential Time: %lf ms\n", (double) (end.tv_usec - start.tv_usec) +// / 1000000 +
+                                     (double) (end.tv_sec - start.tv_sec) * 1000000);
     return 0;
 }

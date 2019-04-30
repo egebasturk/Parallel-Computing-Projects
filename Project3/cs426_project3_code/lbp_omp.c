@@ -189,9 +189,9 @@ int main(int argc, char* argv[])
     /// Test
     int correct_count = 0;
     int incorrect_count = 0;
-    //u_int8_t** found_people_array = (u_int8_t**)malloc(sizeof(u_int8_t) *
-            //people_count * sample_count_per_person - k * people_count);
+
     u_int8_t found_people_array[people_count][sample_count_per_person - k];
+    /// Calculate test results
     #if DEBUG_OPT_TEST
     #pragma omp parallel for collapse(2)
     #endif
@@ -215,6 +215,7 @@ int main(int argc, char* argv[])
                 incorrect_count++;
         }
     }
+    double end = GET_TIME;
     for (int i = 0; i < people_count; ++i) {
         for (int j = k; j < sample_count_per_person; ++j) {
             /// Print intermediate results as asked
@@ -238,7 +239,7 @@ int main(int argc, char* argv[])
     free(histogram_array);
     free(original_images);
     //free(buff);
-    double end = GET_TIME;
-    printf("Parallel Time: %lf\n", end - start);
+
+    printf("Parallel Time: %lf ms\n", (end - start) * 1000000);
     return 0;
 }
