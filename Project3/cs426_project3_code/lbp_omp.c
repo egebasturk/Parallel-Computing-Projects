@@ -134,7 +134,6 @@ int main(int argc, char* argv[])
 {
     double start = GET_TIME;
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
-    omp_set_num_threads(atoi(argv[2]));
     //char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
 
@@ -173,6 +172,7 @@ int main(int argc, char* argv[])
     #endif
     for (int i = 0; i < people_count; ++i)
     {
+        //printf("%d\n", omp_get_num_threads());
         histogram_array[i] = malloc(sample_count_per_person * sizeof(int*));
         original_images[i] = malloc(sample_count_per_person * sizeof(int**));
         for (int j = 0; j < sample_count_per_person; ++j)
@@ -217,12 +217,12 @@ int main(int argc, char* argv[])
         }
     }
     double end = GET_TIME;
-    for (int i = 0; i < people_count; ++i) {
+    /*for (int i = 0; i < people_count; ++i) {
         for (int j = k; j < sample_count_per_person; ++j) {
             /// Print intermediate results as asked
             printf("%s %d %d\n", buff, found_people_array[i][j] + 1, i + 1);
         }
-    }
+    }*/
     /// Print all results
     printf("Accuracy: %d correct answers for %d tests\n", correct_count,
            people_count * sample_count_per_person - k * people_count);

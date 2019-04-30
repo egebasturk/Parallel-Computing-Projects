@@ -47,7 +47,6 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
             #if DEBUG_LBP_WRITE
             img_lbp[i][j] = tmp;
             #endif
-            #pragma omp atomic
             ((int*)hist)[tmp]++;
         }
     }
