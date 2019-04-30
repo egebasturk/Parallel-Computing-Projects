@@ -134,6 +134,7 @@ int main(int argc, char* argv[])
 {
     double start = GET_TIME;
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
+    omp_set_num_threads(atoi(argv[2]));
     //char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
 
