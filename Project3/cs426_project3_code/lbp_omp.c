@@ -67,11 +67,15 @@ void create_histogram(int * hist, int ** img, int num_rows, int num_cols)
         img_lbp[k][0] = 0;// img[k][0];
         img_lbp[k][IMAGE_WIDTH - 1] = 0;// img[k][IMAGE_WIDTH - 1];
         //((int*)hist)[0] += 2;
+        hist[img[k][IMAGE_WIDTH - 1]]++;
+        hist[img[k][0]]++;
     }
     for (int l = 0; l < IMAGE_WIDTH; ++l) {
         img_lbp[0][l] = 0;// img[0][l];
         img_lbp[IMAGE_HEIGHT - 1][l] = 0;//img[IMAGE_HEIGHT - 1][l];
         //((int*)hist)[0] += 2;
+        hist[img[0][l]]++;
+        hist[img[IMAGE_HEIGHT - 1][l]]++;
     }
     if (DEBUG_IMG_WRITE & flag == 15) {
         FILE *fptr;
@@ -172,7 +176,7 @@ int main(int argc, char* argv[])
         original_images[i] = malloc(sample_count_per_person * sizeof(int**));
         for (int j = 0; j < sample_count_per_person; ++j)
         {
-            sprintf(buff, "../images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
+            sprintf(buff, "images/%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero
             int** image = read_pgm_file(buff, IMAGE_HEIGHT, IMAGE_WIDTH);
             original_images[i][j] = image;
 
