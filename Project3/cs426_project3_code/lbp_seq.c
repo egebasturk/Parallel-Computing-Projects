@@ -163,15 +163,13 @@ int main(int argc, char* argv[])
                 incorrect_count++;
         }
     }
-    struct timeval end;
-    gettimeofday(&end, NULL);
-    /*
+
     for (int i = 0; i < people_count; ++i) {
         for (int j = k; j < sample_count_per_person; ++j) {
             /// Print intermediate results as asked
             printf("%s %d %d\n", buff, found_people_array[i][j] + 1, i + 1);
         }
-    }*/
+    }
     /// Print all results
     printf("Accuracy: %d correct answers for %d tests\n", correct_count,
            people_count * sample_count_per_person - k * people_count);
@@ -191,6 +189,9 @@ int main(int argc, char* argv[])
     free(original_images);
     free(buff);
 
+    struct timeval end;
+    gettimeofday(&end, NULL);
+    printf("Parallel Time: %lf ms\n", 0.0);
     printf("Sequential Time: %lf ms\n", (double) (end.tv_usec - start.tv_usec) / 1000 +
                                      (double) (end.tv_sec - start.tv_sec) * 1000);
     return 0;

@@ -132,7 +132,7 @@ int find_closest(int ***training_set, int num_persons, int num_training, int siz
 }
 int main(int argc, char* argv[])
 {
-    double start = GET_TIME;
+    double start_seq = GET_TIME;
     int k = atoi(argv[1]), people_count = 18, sample_count_per_person = 20;
     //char* buff = malloc(32 * sizeof(char));
     int**** original_images = malloc(people_count * sizeof(int***));
@@ -167,6 +167,8 @@ int main(int argc, char* argv[])
         }
     }
     */
+    double end_seq1 = GET_TIME - start_seq;
+    double start_parallel = GET_TIME;
     #if DEBUG_OPT_MAIN
     #pragma omp parallel for private(j, buff, image) shared(original_images)// collapse(2)
     #endif
@@ -216,13 +218,16 @@ int main(int argc, char* argv[])
                 incorrect_count++;
         }
     }
-    double end = GET_TIME;
-    /*for (int i = 0; i < people_count; ++i) {
+    double end_parallel = GET_TIME;
+    start_seq = GET_TIME;
+    double parallel_time = end_parallel - start_parallel;
+
+    for (int i = 0; i < people_count; ++i) {
         for (int j = k; j < sample_count_per_person; ++j) {
             /// Print intermediate results as asked
             printf("%s %d %d\n", buff, found_people_array[i][j] + 1, i + 1);
         }
-    }*/
+    }
     /// Print all results
     printf("Accuracy: %d correct answers for %d tests\n", correct_count,
            people_count * sample_count_per_person - k * people_count);
@@ -241,6 +246,8 @@ int main(int argc, char* argv[])
     free(original_images);
     //free(buff);
 
-    printf("Parallel Time: %lf ms\n", (end - start) * 1000);
+    double sequential_time = GET_TIME - start_seq + end_seq1;
+    printf("Parallel Time: %lf ms\n", (parallel_time) * 1000);
+    printf("Sequential Time: %lf ms\n", (sequential_time) * 1000);
     return 0;
 }
