@@ -17,25 +17,28 @@ export OMP_NUM_THREADS=4
 echo "----TESTS WITH DIFFERENT PARAMETERS----"
 threadsArray=(1 2 4 6 8 16)
 kArray=(1 2 5 7 10)
+
+# Clean Existing files
+> alpege_basturk.output
+> prof_sequential.txt
+> prof_omp.txt
+
 for k in "${kArray[@]}"; do
 	echo "Sequential running with k = $k"
-	if (($k == 1)); then
-	    ./lbp_seq 1 > alpege_basturk.output # writing first one like this to overwrite anything left
-	    gprof ./lbp_seq gmon.out > prof_sequential.txt
-	else
-	    ./lbp_seq $k >> alpege_basturk.output
-	    gprof ./lbp_seq gmon.out >> prof_sequential.txt
-    fi
+	#echo "****Sequential running with k = $k****" >> alpege_basturk.output
+	echo "****Sequential running with k = $k****" >> prof_sequential.txt
+
+    #echo "Sequential running with k = $k" >> alpege_basturk.output
+    ./lbp_seq $k >> alpege_basturk.output
+    gprof ./lbp_seq gmon.out >> prof_sequential.txt
 
 	for t in "${threadsArray[@]}"; do
         echo "OMP running with $t threads, where k = $k"
+        #echo "****OMP running with $t threads, where k = $k****" >> alpege_basturk.output
+        echo "****Sequential running with k = $k****" >> prof_omp.txt
+
 		export OMP_NUM_THREADS=$t
 	    ./lbp_omp $k >> alpege_basturk.output
-
-		if (($k == 1)); then
-            gprof ./lbp_omp gmon.out > prof_omp.txt
-        else
-            gprof ./lbp_omp gmon.out >> prof_omp.txt
-        fi
+        gprof ./lbp_omp gmon.out >> prof_omp.txt
 	done
 done
