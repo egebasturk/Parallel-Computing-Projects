@@ -224,6 +224,7 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < people_count; ++i) {
         for (int j = k; j < sample_count_per_person; ++j) {
+            sprintf(buff, "%d.%d.txt", i + 1, j + 1); // Arrays don't start from zero so add 1
             /// Print intermediate results as asked
             printf("%s %d %d\n", buff, found_people_array[i][j] + 1, i + 1);
         }
