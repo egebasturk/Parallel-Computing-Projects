@@ -1,7 +1,7 @@
 all: gpummultexec.o 
 # cpummultexec.o utils.o 
 gpummultexec.o:
-	nvcc utils.c mmmult.cu -o gpummultexec.o
+	nvcc -ccbin=gcc -lm utils.c mmmult.cu -o gpummultexec.o
 #cpummultexec.o:
 #	cc main.c -o cpummultexec.o
 #utils.o:

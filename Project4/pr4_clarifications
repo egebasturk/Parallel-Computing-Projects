@@ -1,0 +1,7 @@
+
+3. bullet point in the arguments list, the one about stdout: 
+It says that if the argument is 1, then program will print the initial matrix, vector, and resulting vector.
+In this case, initial matrix will be printed in the given format, i.e, values_array, col_indices, row_ptr arrays. You will print each of those in a new line. 
+
+*IMPORTANT: You will need to implement an additional feature, for the argument above, if the argument = 2, then you will only print resulting vector.
+

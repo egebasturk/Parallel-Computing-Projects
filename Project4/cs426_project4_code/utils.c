@@ -27,9 +27,28 @@ void readMatrixFromFile(char* input_filename,
         double non_zero_val = 0.0;
         while (fscanf(fptr, "%d %d %lf", &row, &column, &non_zero_val) == 1)
         {
-            row_ptr_array[index] = row;
-            col_ind_array[index] = column;
+            // -1 to make indices start from 0
+            row_ptr_array[index] = row - 1;
+            col_ind_array[index] = column - 1;
             values_array[index]  = non_zero_val;
         }
     }
+}
+void printMatrix(int rows, int columns, int num_of_non_zero_entries,
+                int* row_ptr_array, int* col_ind_array,
+                double * values_array) {
+    printf("%d\t%d\t%d\n", rows, columns, num_of_non_zero_entries);
+    for (int i = 0; i < rows; i++)
+    {
+        printf("%d\t%d\t%lf\n",
+            row_ptr_array[i], col_ind_array[i], values_array[i]);
+    }
+}
+void printVector(int rows, double* x_array)
+{
+    for (int i = 0; i < rows; i++)
+    {
+        printf("%lf\t", x_array[i]);
+    }
+    printf("\n");
 }
