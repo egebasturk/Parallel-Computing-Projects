@@ -1,8 +1,6 @@
 #ifndef UTILS
 #define UTILS
-extern "C"{
-#include "utils.h"
-}
+#include "utils.cuh"
 #endif
 
 

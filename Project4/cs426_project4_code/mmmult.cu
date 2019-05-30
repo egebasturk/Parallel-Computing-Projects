@@ -1,7 +1,5 @@
 #include <stdio.h>
-extern "C"{
-#include "utils.h"
-}
+#include "utils.cuh"
 #include "kernels.cu"
 
 /*
@@ -30,36 +28,46 @@ int main(int argc, char* argv[]) {
                         // First row of file
                        &rows, &columns, &num_of_non_zero_entries,
                         // Return variables
-                       row_ptr_array, col_ind_array, values_array);
+                       &row_ptr_array, &col_ind_array, &values_array);
     // Init. x to 1 (in kernel)
     x_array = (double*)malloc(sizeof(double) * rows);
-    memset(x_array, 1, sizeof(double) * rows);
-    // cudaMemset(x_array_d, 1, sizeof(double) * rows);
+    for (int i = 0; i < rows; i++)
+    {
+        x_array[i] = 1.0f;
+    }
     if (flag_stdout == 1)
     {
         printf("Input Matrix:\n");
         printMatrix(rows, columns, num_of_non_zero_entries,
                 row_ptr_array, col_ind_array, values_array);
+        getchar();
         printf("Initial Vector:\n");
         printVector(rows, x_array);
+        getchar();
     }
     
-    
     // Allocate on device
-    cudaMalloc(&row_ptr_array_d, rows);
-    cudaMalloc(&col_ind_array_d, columns);
-    cudaMalloc(&x_array_d, rows);
-    cudaMalloc(&values_array_d, rows);
+    cudaMalloc(&row_ptr_array_d, num_of_non_zero_entries * sizeof(int));
+    cudaMalloc(&col_ind_array_d, num_of_non_zero_entries * sizeof(int));
+    cudaMalloc(&values_array_d, num_of_non_zero_entries * sizeof(double));
+    cudaMalloc(&x_array_d, rows * sizeof(double));
     // Copy
-    cudaMemcpy(row_ptr_array_d, row_ptr_array, rows, cudaMemcpyHostToDevice);
-    cudaMemcpy(col_ind_array_d, col_ind_array, columns, cudaMemcpyHostToDevice);
-    cudaMemcpy(values_array_d, values_array, rows, cudaMemcpyHostToDevice);
-    cudaMemcpy(x_array_d, x_array, rows, cudaMemcpyHostToDevice);
+    cudaMemcpy(row_ptr_array_d, row_ptr_array,
+        num_of_non_zero_entries * sizeof(int), cudaMemcpyHostToDevice);
+        
+    cudaMemcpy(col_ind_array_d, col_ind_array,
+        num_of_non_zero_entries * sizeof(int), cudaMemcpyHostToDevice);
+        
+    cudaMemcpy(values_array_d, values_array,
+        num_of_non_zero_entries * sizeof(double), cudaMemcpyHostToDevice);
+        
+    cudaMemcpy(x_array_d, x_array,
+        rows * sizeof(double), cudaMemcpyHostToDevice);
     
     // Kernel invocation here
     int tmp = ceil(rows / num_threads);
-    dim3 dimGrid(tmp,1);
-    dim3 dimBlock(num_threads, 1);
+    dim3 dimGrid(1,1);
+    dim3 dimBlock(num_threads, num_threads);
     mmult_kernel<<<dimGrid, dimBlock>>>(rows, columns, num_of_non_zero_entries,
                                         num_repetitions,
                                         row_ptr_array_d, col_ind_array_d,
@@ -69,12 +77,22 @@ int main(int argc, char* argv[]) {
 //    cudaMemcpy(row_ptr_array, row_ptr_array_d, rows, cudaMemcpyDeviceToHost);
 //    cudaMemcpy(col_ind_array, col_ind_array_d, columns, cudaMemcpyDeviceToHost);
 //    cudaMemcpy(values_array, values_array_d, rows, cudaMemcpyDeviceToHost);
-    cudaMemcpy(x_array, x_array_d, rows, cudaMemcpyDeviceToHost);
+    x_array[0] = 6666;
+    cudaMemcpy(x_array, x_array_d,
+        rows * sizeof(double), cudaMemcpyDeviceToHost);
     
     if (flag_stdout == 1 || flag_stdout == 2)
     {
         printf("Resulting Vector:\n");
         printVector(rows, x_array);
     }
+    cudaFree(x_array_d);
+    cudaFree(row_ptr_array_d);
+    cudaFree(col_ind_array_d);
+    cudaFree(values_array_d);
+    free(x_array);
+    free(row_ptr_array);
+    free(col_ind_array);
+    free(values_array);
     return 0;
 }
