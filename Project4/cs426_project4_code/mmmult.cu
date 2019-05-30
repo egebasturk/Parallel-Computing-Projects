@@ -37,8 +37,10 @@ int main(int argc, char* argv[]) {
     // cudaMemset(x_array_d, 1, sizeof(double) * rows);
     if (flag_stdout == 1)
     {
+        printf("Input Matrix:\n");
         printMatrix(rows, columns, num_of_non_zero_entries,
                 row_ptr_array, col_ind_array, values_array);
+        printf("Initial Vector:\n");
         printVector(rows, x_array);
     }
     
@@ -69,10 +71,9 @@ int main(int argc, char* argv[]) {
 //    cudaMemcpy(values_array, values_array_d, rows, cudaMemcpyDeviceToHost);
     cudaMemcpy(x_array, x_array_d, rows, cudaMemcpyDeviceToHost);
     
-
-//    cuda_hello<<<1,1>>>();
     if (flag_stdout == 1 || flag_stdout == 2)
     {
+        printf("Resulting Vector:\n");
         printVector(rows, x_array);
     }
     return 0;
