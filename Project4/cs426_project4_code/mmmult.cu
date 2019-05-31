@@ -57,6 +57,11 @@ int main(int argc, char* argv[]) {
     #ifdef DEBUG_STOP
     getchar();
     #endif
+    // Time Measurement Variables
+    clock_t     timeGPUStart, timeGPUEnd;
+    clock_t     timeCPUStart, timeCPUEnd;
+    float timeElapsedGPU = 0, timeElapsedCPU = 0,
+          timeElapsedSerial = 0, timeElapsedParallel = 0;
     // Matrix meta-data
     int rows, columns, num_of_non_zero_entries;
     // Matrix
@@ -71,6 +76,7 @@ int main(int argc, char* argv[]) {
     int flag_stdout         = atoi(argv[3]);
     char* input_filename    = argv[4];
 
+    timeCPUStart = clock();
     readMatrixFromFile(input_filename,
                         // First row of file
                        &rows, &columns, &num_of_non_zero_entries,
@@ -79,6 +85,9 @@ int main(int argc, char* argv[]) {
     // Init. x to 1 (in kernel)
     x_array = (double*)malloc(sizeof(double) * rows);
     for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
+    timeElapsedCPU += clock() - timeCPUStart;
+    timeElapsedSerial = timeElapsedParallel = timeElapsedCPU; // This part is common
+    
     if (flag_stdout == 1)
     {
         printf("Input Matrix:\n");
@@ -100,6 +109,7 @@ int main(int argc, char* argv[]) {
     //cudaDeviceSetLimit(cudaLimitMallocHeapSize, size);
 
     // Allocate on device
+    timeGPUStart = clock();
     cudaMalloc(&row_ptr_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&col_ind_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&values_array_d, num_of_non_zero_entries * sizeof(double));
@@ -152,18 +162,23 @@ int main(int argc, char* argv[]) {
     #ifdef DEBUG_STOP
     getchar();
     #endif
+    timeElapsedGPU += clock() - timeGPUStart;
+    timeElapsedParallel += timeElapsedGPU;
     if (flag_stdout == 1 || flag_stdout == 2)
     {
         printf("Resulting Vector:\n");
         printVector(rows, x_array);
     }
     #ifdef PRINT_SERIAL
+    timeCPUStart = clock();
     for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
     mmult_serial(// First row of file
                        rows, columns, num_of_non_zero_entries,
                        num_repetitions,
                        row_ptr_array, col_ind_array,
                        values_array, &x_array);
+    timeElapsedCPU += clock() - timeCPUStart;
+    timeElapsedSerial += timeElapsedCPU;
     printf("Resulting Serial Vector:\n");
     printVector(rows, x_array);
     #endif
@@ -176,5 +191,7 @@ int main(int argc, char* argv[]) {
     free(row_ptr_array);
     free(col_ind_array);
     free(values_array);
+    printf("Serial Time: %f\nParallel Time: %f\n",
+            timeElapsedSerial, timeElapsedParallel);
     return 0;
 }
