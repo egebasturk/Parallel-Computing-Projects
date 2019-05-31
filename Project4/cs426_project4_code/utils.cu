@@ -59,7 +59,7 @@ void printVector(int rows, double* x_array)
 {
     for (int i = 0; i < rows; i++)
     {
-        printf("%lf\t", x_array[i]);
+        printf("%lf\n", x_array[i]);
     }
     printf("\n");
 }
