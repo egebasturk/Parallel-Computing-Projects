@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include "utils.cuh"
 #include "kernels.cu"
-#define DEBUG_STOP
+//#define DEBUG_STOP
+#define PRINT_SERIAL
 
 // Reference: Print device properties codes were taken from
 // http://www.cs.fsu.edu/~xyuan/cda5125/examples/lect24/devicequery.cu
@@ -53,7 +54,9 @@ int main(int argc, char* argv[]) {
         cudaGetDeviceProperties(&devProp, i);
         printDevProp(devProp);
     }
+    #ifdef DEBUG_STOP
     getchar();
+    #endif
     // Matrix meta-data
     int rows, columns, num_of_non_zero_entries;
     // Matrix
@@ -75,10 +78,7 @@ int main(int argc, char* argv[]) {
                        &row_ptr_array, &col_ind_array, &values_array);
     // Init. x to 1 (in kernel)
     x_array = (double*)malloc(sizeof(double) * rows);
-    for (int i = 0; i < rows; i++)
-    {
-        x_array[i] = 1.0f;
-    }
+    for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
     if (flag_stdout == 1)
     {
         printf("Input Matrix:\n");
@@ -127,10 +127,13 @@ int main(int argc, char* argv[]) {
     #endif
         
     // Kernel invocation here
-    int tmp = ceil(rows / num_threads);
+    int tmp = ceil((double)rows / num_threads);
     dim3 dimGrid(tmp,1);
     dim3 dimBlock(num_threads, 1);
+    printf("Num Threads:%d tmp:%d\n", num_threads, tmp);
+    #ifdef DEBUG_STOP
     getchar();
+    #endif
     mmult_kernel<<<dimGrid, dimBlock>>>(rows, columns, num_of_non_zero_entries,
                                         num_repetitions,
                                         row_ptr_array_d, col_ind_array_d,
@@ -143,7 +146,6 @@ int main(int argc, char* argv[]) {
 //    cudaMemcpy(row_ptr_array, row_ptr_array_d, rows, cudaMemcpyDeviceToHost);
 //    cudaMemcpy(col_ind_array, col_ind_array_d, columns, cudaMemcpyDeviceToHost);
 //    cudaMemcpy(values_array, values_array_d, rows, cudaMemcpyDeviceToHost);
-    x_array[0] = 6666;
     cudaMemcpy(x_array, x_array_d,
         rows * sizeof(double), cudaMemcpyDeviceToHost);
     CUDAErrorCheck("Memcpy back error");
@@ -155,6 +157,17 @@ int main(int argc, char* argv[]) {
         printf("Resulting Vector:\n");
         printVector(rows, x_array);
     }
+    #ifdef PRINT_SERIAL
+    for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
+    mmult_serial(// First row of file
+                       rows, columns, num_of_non_zero_entries,
+                       num_repetitions,
+                       row_ptr_array, col_ind_array,
+                       values_array, &x_array);
+    printf("Resulting Serial Vector:\n");
+    printVector(rows, x_array);
+    #endif
+    
     cudaFree(x_array_d);
     cudaFree(row_ptr_array_d);
     cudaFree(col_ind_array_d);
