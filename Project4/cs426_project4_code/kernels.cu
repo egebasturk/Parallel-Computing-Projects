@@ -15,6 +15,8 @@ __global__ void mmult_kernel(// First row of file
                         // Return variables
                        int* row_ptr_array_d, int* col_ind_array_d,
                        double* values_array_d, double* x_array_d) {
+    printf("Thread on GPU: BlockDim.x:%d blockIdx.x:%d threadIdx.x:%d\n"
+                                      , blockDim.x, blockIdx.x, threadIdx.x);
     for (int i = 0; i < num_repetitions; i++)
     {
         // Iteration code

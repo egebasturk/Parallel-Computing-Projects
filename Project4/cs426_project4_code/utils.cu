@@ -1,5 +1,5 @@
 #include "utils.cuh"
-
+__host__
 void readMatrixFromFile(char* input_filename,
                         // First row of file
                         int* rows, int* columns, int* num_of_non_zero_entries,
@@ -42,6 +42,7 @@ void readMatrixFromFile(char* input_filename,
         }
     }
 }
+__host__
 void printMatrix(int rows, int columns, int num_of_non_zero_entries,
                 int* row_ptr_array, int* col_ind_array,
                 double * values_array) {
@@ -51,17 +52,9 @@ void printMatrix(int rows, int columns, int num_of_non_zero_entries,
     {
         printf("%d\t%d\t%lf\n", row_ptr_array[i] + 1,
             col_ind_array[i] + 1, values_array[i]);
-/*        int row_start = row_ptr_array[i];
-        int row_end   = row_ptr_array[i + 1];
-        for (int j = row_start; j < row_end; j++)
-        {
-            //printf("I:%d\tJ:%d\n", i, j);
-            printf("%d\t%d\t%lf\n",
-                row_ptr_array[i], col_ind_array[j], values_array[j]);
-        }
-*/
     }
 }
+__host__
 void printVector(int rows, double* x_array)
 {
     for (int i = 0; i < rows; i++)
@@ -69,4 +62,12 @@ void printVector(int rows, double* x_array)
         printf("%lf\t", x_array[i]);
     }
     printf("\n");
+}
+__host__
+void CUDAErrorCheck(const char* msg) {
+cudaError_t err = cudaGetLastError();
+  if (cudaSuccess != err) {
+    fprintf(stderr, "Cuda error: %s: %d: %s.\n", msg, (int)err, cudaGetErrorName(err));
+//    exit(EXIT_FAILURE);
+  }
 }

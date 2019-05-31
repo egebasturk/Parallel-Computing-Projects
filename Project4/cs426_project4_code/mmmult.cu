@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "utils.cuh"
 #include "kernels.cu"
+#define DEBUG_STOP
 
 /*
 Arguments
@@ -40,17 +41,30 @@ int main(int argc, char* argv[]) {
         printf("Input Matrix:\n");
         printMatrix(rows, columns, num_of_non_zero_entries,
                 row_ptr_array, col_ind_array, values_array);
+        #ifdef DEBUG_STOP
         getchar();
+        #endif
         printf("Initial Vector:\n");
         printVector(rows, x_array);
+        #ifdef DEBUG_STOP
         getchar();
+        #endif
     }
-    
+    size_t size = num_of_non_zero_entries * sizeof(int) +
+        num_of_non_zero_entries * sizeof(int) +
+        num_of_non_zero_entries * sizeof(double) +
+        rows * sizeof(double);
+    //cudaDeviceSetLimit(cudaLimitMallocHeapSize, size);
+
     // Allocate on device
     cudaMalloc(&row_ptr_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&col_ind_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&values_array_d, num_of_non_zero_entries * sizeof(double));
     cudaMalloc(&x_array_d, rows * sizeof(double));
+    CUDAErrorCheck("Malloc Error");
+    #ifdef DEBUG_STOP
+    getchar();
+    #endif
     // Copy
     cudaMemcpy(row_ptr_array_d, row_ptr_array,
         num_of_non_zero_entries * sizeof(int), cudaMemcpyHostToDevice);
@@ -63,16 +77,25 @@ int main(int argc, char* argv[]) {
         
     cudaMemcpy(x_array_d, x_array,
         rows * sizeof(double), cudaMemcpyHostToDevice);
-    
+
+    CUDAErrorCheck("Memcpy Error");
+    #ifdef DEBUG_STOP
+    getchar();
+    #endif
+        
     // Kernel invocation here
     int tmp = ceil(rows / num_threads);
-    dim3 dimGrid(1,1);
-    dim3 dimBlock(num_threads, num_threads);
+    dim3 dimGrid(tmp,1);
+    dim3 dimBlock(num_threads, 1);
+    getchar();
     mmult_kernel<<<dimGrid, dimBlock>>>(rows, columns, num_of_non_zero_entries,
                                         num_repetitions,
                                         row_ptr_array_d, col_ind_array_d,
                                         values_array_d, x_array_d );
-    
+    CUDAErrorCheck("Kernel Error");
+    #ifdef DEBUG_STOP
+    getchar();
+    #endif
     // Read back from the device
 //    cudaMemcpy(row_ptr_array, row_ptr_array_d, rows, cudaMemcpyDeviceToHost);
 //    cudaMemcpy(col_ind_array, col_ind_array_d, columns, cudaMemcpyDeviceToHost);
@@ -80,7 +103,10 @@ int main(int argc, char* argv[]) {
     x_array[0] = 6666;
     cudaMemcpy(x_array, x_array_d,
         rows * sizeof(double), cudaMemcpyDeviceToHost);
-    
+    CUDAErrorCheck("Memcpy back error");
+    #ifdef DEBUG_STOP
+    getchar();
+    #endif
     if (flag_stdout == 1 || flag_stdout == 2)
     {
         printf("Resulting Vector:\n");
