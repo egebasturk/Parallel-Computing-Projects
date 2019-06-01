@@ -79,19 +79,15 @@ void mmult_serial(// First row of file
                        int* row_ptr_array, int* col_ind_array,
                        double* values_array, double** x_array)
 {
-    for (int i = 0; i < num_repetitions; i++)
+    for ( int row = 0; row < rows; row++)
     {
-        // Iteration code
-        for ( int row = 0; row < rows; row++)
-        {
-            double tmp_product = 0;
-            int row_start = row_ptr_array[row];
-            int row_end   = row_ptr_array[row + 1];
-            
-            // Iterate over the sparse row
-            for (int j = row_start; j < row_end; j++)
-                tmp_product += values_array[j] * (*x_array)[col_ind_array[j]];
-            (*x_array)[row] += tmp_product;
-        }
+        double tmp_product = 0;
+        int row_start = row_ptr_array[row];
+        int row_end   = row_ptr_array[row + 1];
+        
+        // Iterate over the sparse row
+        for (int j = row_start; j < row_end; j++)
+            tmp_product += values_array[j] * (*x_array)[col_ind_array[j]];
+        (*x_array)[row] += tmp_product;
     }
 }
