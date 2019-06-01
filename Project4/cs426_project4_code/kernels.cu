@@ -24,6 +24,6 @@ __global__ void mmult_kernel(// First row of file
         // Iterate over the sparse row
         for (int j = row_start; j < row_end; j++)
             tmp_product += values_array_d[j] * x_array_d_old[col_ind_array_d[j]];
-        x_array_d[row] += tmp_product;
+        x_array_d[row] = tmp_product;
     }
 }

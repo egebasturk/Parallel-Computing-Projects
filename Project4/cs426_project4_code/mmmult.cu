@@ -161,13 +161,14 @@ int main(int argc, char* argv[]) {
                                     num_repetitions,
                                     row_ptr_array_d, col_ind_array_d,
                                     values_array_d, x_array_d, x_array_d_old );
-        cudaMemcpy(x_array_d_old, x_array_d, rows * sizeof(double),
-                    cudaMemcpyDeviceToDevice);
-/*        double* tmpptr = x_array_d_old;
+//        cudaMemcpy(x_array_d_old, x_array_d, rows * sizeof(double),
+//                    cudaMemcpyDeviceToDevice);
+        double* tmpptr = x_array_d_old;
         x_array_d_old = x_array_d;
-        x_array_d = tmpptr;*/
-    CUDAErrorCheck("Kernel Error");
+        x_array_d = tmpptr;
+        CUDAErrorCheck("Kernel Error");
     }
+    x_array_d = x_array_d_old;
     #ifdef DEBUG_STOP
     getchar();
     #endif
@@ -203,11 +204,12 @@ int main(int argc, char* argv[]) {
                            num_repetitions,
                            row_ptr_array, col_ind_array,
                            values_array, &x_array, &x_array_old);
-        memcpy(x_array_old, x_array, rows * sizeof(double));
-/*        double* tmpptr = x_array_old;
+//        memcpy(x_array_old, x_array, rows * sizeof(double));
+        double* tmpptr = x_array_old;
         x_array_old = x_array;
-        x_array = tmpptr;*/
+        x_array = tmpptr;
     }
+    x_array = x_array_old;
     timeElapsedCPU += clock() - timeCPUStart;
     timeElapsedSerial += timeElapsedCPU;
     #if PRINT_SERIAL

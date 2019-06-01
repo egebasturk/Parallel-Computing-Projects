@@ -88,6 +88,24 @@ void mmult_serial(// First row of file
         // Iterate over the sparse row
         for (int j = row_start; j < row_end; j++)
             tmp_product += values_array[j] * (*x_array_old)[col_ind_array[j]];
-        (*x_array)[row] += tmp_product;
+        (*x_array)[row] = tmp_product;
+    }
+}
+__host__
+void init_vector_to_1(// First row of file
+                       int rows, int columns, int num_of_non_zero_entries,
+                       int num_repetitions,
+                        // Return variables
+                       int* row_ptr_array, int* col_ind_array,
+                       double* values_array, double** x_array)
+{
+    for ( int row = 0; row < rows; row++)
+    {
+        int row_start = row_ptr_array[row];
+        int row_end   = row_ptr_array[row + 1];
+        
+        // Iterate over the sparse row
+        for (int j = row_start; j < row_end; j++)
+            (*x_array)[col_ind_array[j]] = 1.0f;
     }
 }

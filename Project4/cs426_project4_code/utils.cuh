@@ -24,3 +24,10 @@ void mmult_serial(// First row of file
                         // Return variables
                        int* row_ptr_array, int* col_ind_array,
                        double* values_array, double** x_array, double** x_array_old);
+__host__
+void init_vector_to_1(// First row of file
+                       int rows, int columns, int num_of_non_zero_entries,
+                       int num_repetitions,
+                        // Return variables
+                       int* row_ptr_array, int* col_ind_array,
+                       double* values_array, double** x_array);
