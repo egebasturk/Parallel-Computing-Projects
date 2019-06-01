@@ -9,7 +9,8 @@ __global__ void mmult_kernel(// First row of file
                        int num_repetitions,
                         // Return variables
                        int* row_ptr_array_d, int* col_ind_array_d,
-                       double* values_array_d, double* x_array_d)
+                       double* values_array_d, double* x_array_d,
+                       double* x_array_d_old)
 {
 //    printf("Thread on GPU: BlockDim.x:%d blockIdx.x:%d threadIdx.x:%d\n"
 //                                      , blockDim.x, blockIdx.x, threadIdx.x);
@@ -22,7 +23,7 @@ __global__ void mmult_kernel(// First row of file
         
         // Iterate over the sparse row
         for (int j = row_start; j < row_end; j++)
-            tmp_product += values_array_d[j] * x_array_d[col_ind_array_d[j]];
+            tmp_product += values_array_d[j] * x_array_d_old[col_ind_array_d[j]];
         x_array_d[row] += tmp_product;
     }
 }

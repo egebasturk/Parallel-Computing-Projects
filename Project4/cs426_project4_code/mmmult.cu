@@ -2,7 +2,7 @@
 #include "utils.cuh"
 #include "kernels.cu"
 //#define DEBUG_STOP
-#define PRINT_SERIAL 0
+#define PRINT_SERIAL 1
 #define PRINT_DEV_PROP 0
 
 // Reference: Print device properties codes were taken from
@@ -69,10 +69,10 @@ int main(int argc, char* argv[]) {
     int rows, columns, num_of_non_zero_entries;
     // Matrix
     int* row_ptr_array, *col_ind_array;
-    double* values_array, *x_array;
+    double* values_array, *x_array, *x_array_old;
     // Matrix on device
     int* row_ptr_array_d, *col_ind_array_d;
-    double* values_array_d, *x_array_d;
+    double* values_array_d, *x_array_d, *x_array_d_old;
 
     int num_threads         = atoi(argv[1]);
     int num_repetitions     = atoi(argv[2]);
@@ -87,7 +87,12 @@ int main(int argc, char* argv[]) {
                        &row_ptr_array, &col_ind_array, &values_array);
     // Init. x to 1 (in kernel)
     x_array = (double*)malloc(sizeof(double) * rows);
-    for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
+    x_array_old = (double*)malloc(sizeof(double) * rows);
+    for (int i = 0; i < rows; i++)
+    {
+        x_array[i]     = 1.0f;
+        x_array_old[i] = 1.0f;
+    }
     timeElapsedCPU += clock() - timeCPUStart;
     timeElapsedSerial = timeElapsedParallel = timeElapsedCPU; // This part is common
     timeElapsedFileRead = timeElapsedSerial;
@@ -116,6 +121,7 @@ int main(int argc, char* argv[]) {
     cudaMalloc(&col_ind_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&values_array_d, num_of_non_zero_entries * sizeof(double));
     cudaMalloc(&x_array_d, rows * sizeof(double));
+    cudaMalloc(&x_array_d_old, rows * sizeof(double));
     CUDAErrorCheck("Malloc Error");
     #ifdef DEBUG_STOP
     getchar();
@@ -130,9 +136,11 @@ int main(int argc, char* argv[]) {
     cudaMemcpy(values_array_d, values_array,
         num_of_non_zero_entries * sizeof(double), cudaMemcpyHostToDevice);
         
+    cudaMemcpy(x_array_d_old, x_array_old,
+        rows * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(x_array_d, x_array,
         rows * sizeof(double), cudaMemcpyHostToDevice);
-
+        
     CUDAErrorCheck("Memcpy Error");
     #ifdef DEBUG_STOP
     getchar();
@@ -150,9 +158,14 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_repetitions; i++)
     {
         mmult_kernel<<<dimGrid, dimBlock>>>(rows, columns, num_of_non_zero_entries,
-                                            num_repetitions,
-                                            row_ptr_array_d, col_ind_array_d,
-                                            values_array_d, x_array_d );
+                                    num_repetitions,
+                                    row_ptr_array_d, col_ind_array_d,
+                                    values_array_d, x_array_d, x_array_d_old );
+        cudaMemcpy(x_array_d_old, x_array_d, rows * sizeof(double),
+                    cudaMemcpyDeviceToDevice);
+/*        double* tmpptr = x_array_d_old;
+        x_array_d_old = x_array_d;
+        x_array_d = tmpptr;*/
     CUDAErrorCheck("Kernel Error");
     }
     #ifdef DEBUG_STOP
@@ -175,15 +188,25 @@ int main(int argc, char* argv[]) {
         printf("Resulting Vector:\n");
         printVector(rows, x_array);
     }
+    
+    // Serial Mult.
     timeCPUStart = clock();
-    for (int i = 0; i < rows; i++) x_array[i] = 1.0f;
+    for (int i = 0; i < rows; i++)
+    {
+        x_array[i]     = 1.0f;
+        x_array_old[i] = 1.0f;
+    }
     for (int i = 0; i < num_repetitions; i++)
     {
         mmult_serial(// First row of file
                            rows, columns, num_of_non_zero_entries,
                            num_repetitions,
                            row_ptr_array, col_ind_array,
-                           values_array, &x_array);
+                           values_array, &x_array, &x_array_old);
+        memcpy(x_array_old, x_array, rows * sizeof(double));
+/*        double* tmpptr = x_array_old;
+        x_array_old = x_array;
+        x_array = tmpptr;*/
     }
     timeElapsedCPU += clock() - timeCPUStart;
     timeElapsedSerial += timeElapsedCPU;

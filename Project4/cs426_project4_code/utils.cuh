@@ -23,4 +23,4 @@ void mmult_serial(// First row of file
                        int num_repetitions,
                         // Return variables
                        int* row_ptr_array, int* col_ind_array,
-                       double* values_array, double** x_array);
+                       double* values_array, double** x_array, double** x_array_old);
