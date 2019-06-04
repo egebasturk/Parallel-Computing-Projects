@@ -4,7 +4,8 @@ void readMatrixFromFile(char* input_filename,
                         // First row of file
                         int* rows, int* columns, int* num_of_non_zero_entries,
                         // Return variables
-                        int** row_ptr_array, int** col_ind_array,
+                        int** row_ptr_array, int** row_ptr_array_init,
+                        int** col_ind_array,                        
                         double** values_array) {
     FILE *fptr;
 
@@ -21,8 +22,9 @@ void readMatrixFromFile(char* input_filename,
         *rows = row;
         *columns = column;
         *num_of_non_zero_entries = tmp;
-        
-        *row_ptr_array = (int*)malloc(sizeof(int) * *num_of_non_zero_entries);
+        int* elem_ptr_arr = (int*)malloc(sizeof(int) * (*rows + 1));
+        *row_ptr_array = (int*)malloc(sizeof(int) * (*rows + 1));
+        *row_ptr_array_init = (int*)malloc(sizeof(int) * *num_of_non_zero_entries);
         *col_ind_array = (int*)malloc(sizeof(int) * *num_of_non_zero_entries);
         *values_array  = (double*)malloc(sizeof(double) * *num_of_non_zero_entries);
         
@@ -35,11 +37,23 @@ void readMatrixFromFile(char* input_filename,
             fscanf(fptr, "%lf", &non_zero_val);
         
             // -1 to make indices start from 0
-            (*row_ptr_array)[index] = row - 1;
+            elem_ptr_arr[row - 1]++;
+//            (*row_ptr_array)[index] = row - 1;
+            (*row_ptr_array_init)[index] = row - 1;
             (*col_ind_array)[index] = column - 1;
             (*values_array)[index]  = non_zero_val;
             index++;
         }
+        // Prefix sum
+        for (int k = 1; k < *rows; k++)
+        {
+            elem_ptr_arr[k] += elem_ptr_arr[k - 1];
+            (*row_ptr_array)[k] = elem_ptr_arr[k];
+        }
+//        for (int k = *rows; k > 0; k--)
+//            (*row_ptr_array)[k] = *num_of_non_zero_entries - elem_ptr_arr[k - 1];
+        (*row_ptr_array)[0] = 0;
+        free(elem_ptr_arr);
     }
 }
 __host__
@@ -91,7 +105,7 @@ void mmult_serial(// First row of file
         (*x_array)[row] = tmp_product;
     }
 }
-__host__
+/*__host__
 void init_vector_to_1(// First row of file
                        int rows, int columns, int num_of_non_zero_entries,
                        int num_repetitions,
@@ -108,4 +122,4 @@ void init_vector_to_1(// First row of file
         for (int j = row_start; j < row_end; j++)
             (*x_array)[col_ind_array[j]] = 1.0f;
     }
-}
+}*/

@@ -2,7 +2,7 @@
 #include "utils.cuh"
 #include "kernels.cu"
 //#define DEBUG_STOP
-#define PRINT_SERIAL 1
+#define PRINT_SERIAL 0
 #define PRINT_DEV_PROP 0
 
 // Reference: Print device properties codes were taken from
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
     // Matrix meta-data
     int rows, columns, num_of_non_zero_entries;
     // Matrix
-    int* row_ptr_array, *col_ind_array;
+    int* row_ptr_array, *row_ptr_array_init, *col_ind_array;
     double* values_array, *x_array, *x_array_old;
     // Matrix on device
     int* row_ptr_array_d, *col_ind_array_d;
@@ -84,13 +84,14 @@ int main(int argc, char* argv[]) {
                         // First row of file
                        &rows, &columns, &num_of_non_zero_entries,
                         // Return variables
-                       &row_ptr_array, &col_ind_array, &values_array);
+                       &row_ptr_array, &row_ptr_array_init,
+                       &col_ind_array, &values_array);
     // Init. x to 1 (in kernel)
     x_array = (double*)malloc(sizeof(double) * rows);
     x_array_old = (double*)malloc(sizeof(double) * rows);
     for (int i = 0; i < rows; i++)
     {
-        x_array[i]     = 1.0f;
+        x_array[i]     = 0.0f;
         x_array_old[i] = 1.0f;
     }
     timeElapsedCPU += clock() - timeCPUStart;
@@ -100,12 +101,12 @@ int main(int argc, char* argv[]) {
     {
         printf("Input Matrix:\n");
         printMatrix(rows, columns, num_of_non_zero_entries,
-                row_ptr_array, col_ind_array, values_array);
+                row_ptr_array_init, col_ind_array, values_array);
         #ifdef DEBUG_STOP
         getchar();
         #endif
         printf("Initial Vector:\n");
-        printVector(rows, x_array);
+        printVector(rows, x_array_old);
         #ifdef DEBUG_STOP
         getchar();
         #endif
@@ -117,7 +118,7 @@ int main(int argc, char* argv[]) {
 
     // Allocate on device
     timeGPUStart = clock();
-    cudaMalloc(&row_ptr_array_d, num_of_non_zero_entries * sizeof(int));
+    cudaMalloc(&row_ptr_array_d, (rows + 1) * sizeof(int));
     cudaMalloc(&col_ind_array_d, num_of_non_zero_entries * sizeof(int));
     cudaMalloc(&values_array_d, num_of_non_zero_entries * sizeof(double));
     cudaMalloc(&x_array_d, rows * sizeof(double));
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]) {
     #endif
     // Copy
     cudaMemcpy(row_ptr_array_d, row_ptr_array,
-        num_of_non_zero_entries * sizeof(int), cudaMemcpyHostToDevice);
+        (rows + 1) * sizeof(int), cudaMemcpyHostToDevice);
         
     cudaMemcpy(col_ind_array_d, col_ind_array,
         num_of_non_zero_entries * sizeof(int), cudaMemcpyHostToDevice);
@@ -147,9 +148,10 @@ int main(int argc, char* argv[]) {
     #endif
         
     // Kernel invocation here
+    // Divide row num / kernel count blocks to handle large files in blocks
     int tmp = ceil((double)rows / num_threads);
     if (tmp == 0) tmp = 1; // 0 guard
-    dim3 dimGrid(tmp,1);
+    dim3 dimGrid(tmp, 1);
     dim3 dimBlock(num_threads, 1);
     //printf("Num Threads:%d tmp:%d\n", num_threads, tmp);
     #ifdef DEBUG_STOP
@@ -168,6 +170,7 @@ int main(int argc, char* argv[]) {
         x_array_d = tmpptr;
         CUDAErrorCheck("Kernel Error");
     }
+    cudaFree(x_array_d);
     x_array_d = x_array_d_old;
     #ifdef DEBUG_STOP
     getchar();
@@ -194,7 +197,7 @@ int main(int argc, char* argv[]) {
     timeCPUStart = clock();
     for (int i = 0; i < rows; i++)
     {
-        x_array[i]     = 1.0f;
+        x_array[i]     = 0.0f;
         x_array_old[i] = 1.0f;
     }
     for (int i = 0; i < num_repetitions; i++)
@@ -209,6 +212,7 @@ int main(int argc, char* argv[]) {
         x_array_old = x_array;
         x_array = tmpptr;
     }
+    free(x_array);
     x_array = x_array_old;
     timeElapsedCPU += clock() - timeCPUStart;
     timeElapsedSerial += timeElapsedCPU;
@@ -217,11 +221,11 @@ int main(int argc, char* argv[]) {
     printVector(rows, x_array);
     #endif
     
-    cudaFree(x_array_d);
+    cudaFree(x_array_d_old);
     cudaFree(row_ptr_array_d);
     cudaFree(col_ind_array_d);
     cudaFree(values_array_d);
-    free(x_array);
+    free(x_array_old);
     free(row_ptr_array);
     free(col_ind_array);
     free(values_array);
